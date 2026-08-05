@@ -1,6 +1,7 @@
 import { supabase } from "./supabase/client";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+const SERVICE_WORKER_PATH = "/push-handler.js";
 
 export function isIosDevice() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
@@ -26,7 +27,7 @@ export function getPushSupportStatus() {
     return { supported: false, reason: "ios-install-required" };
   }
 
-  if (!VAPID_PUBLIC_KEY) {
+  if (!VAPID_PUBLIC_KEY?.trim()) {
     return { supported: false, reason: "missing-vapid-key" };
   }
 
@@ -34,117 +35,177 @@ export function getPushSupportStatus() {
 }
 
 export async function registerPushServiceWorker() {
-  if (!("serviceWorker" in navigator)) return null;
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("المتصفح لا يدعم Service Worker");
+  }
 
   const registration = await navigator.serviceWorker.register(
-    "/push-handler.js",
+    SERVICE_WORKER_PATH,
     { scope: "/" }
   );
 
-  await navigator.serviceWorker.ready;
-  return registration;
+  return navigator.serviceWorker.ready;
 }
 
 export async function enablePushNotifications(projectId) {
-  if (!projectId) throw new Error("معرّف المشروع غير موجود");
+  if (!projectId) {
+    throw new Error("معرّف المشروع غير موجود");
+  }
 
   const status = getPushSupportStatus();
+
   if (!status.supported) {
     if (status.reason === "ios-install-required") {
       throw new Error(
         "على iPhone افتح الموقع من Safari، ثم مشاركة ← إضافة إلى الشاشة الرئيسية، وبعدها افتحه من الأيقونة."
       );
     }
+
     if (status.reason === "missing-vapid-key") {
-      throw new Error("مفتاح VAPID العام غير مضاف إلى VITE_VAPID_PUBLIC_KEY");
+      throw new Error(
+        "مفتاح VAPID العام غير مضاف إلى VITE_VAPID_PUBLIC_KEY"
+      );
     }
+
     throw new Error("هذا الجهاز أو المتصفح لا يدعم Web Push");
   }
 
   const permission = await Notification.requestPermission();
+
   if (permission !== "granted") {
     throw new Error("لم يتم منح إذن الإشعارات");
   }
 
   const registration = await registerPushServiceWorker();
-  let subscription = await registration.pushManager.getSubscription();
+  let pushSubscription = await registration.pushManager.getSubscription();
 
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
+  if (!pushSubscription) {
+    pushSubscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
   }
 
-  const subscriptionJson = subscription.toJSON();
+  const subscriptionJson = pushSubscription.toJSON();
+
+  if (!subscriptionJson?.endpoint || !subscriptionJson?.keys) {
+    throw new Error("اشتراك الإشعارات غير مكتمل");
+  }
+
   const {
     data: { user },
     error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
-    throw new Error("يجب تسجيل الدخول قبل تفعيل الإشعارات");
-  }
+  if (userError) throw userError;
+  if (!user) throw new Error("يجب تسجيل الدخول قبل تفعيل الإشعارات");
 
-  const { error } = await supabase.from("push_subscriptions").upsert(
-    {
-      project_id: projectId,
-      user_id: user.id,
-      endpoint: subscriptionJson.endpoint,
+  const now = new Date().toISOString();
 
-      user_agent: navigator.userAgent,
-      platform: isIosDevice() ? "ios" : "web",
-      is_active: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "endpoint" }
-  );
+  const { error } = await supabase
+    .from("push_subscriptions")
+    .upsert(
+      {
+        project_id: projectId,
+        user_id: user.id,
+        endpoint: subscriptionJson.endpoint,
+
+        // يحفظ endpoint وkeys.auth وkeys.p256dh داخل عمود JSONB نفسه.
+        subscription: subscriptionJson,
+
+        user_agent: navigator.userAgent,
+        platform: isIosDevice() ? "ios" : "web",
+        is_active: true,
+        last_used_at: now,
+        updated_at: now,
+      },
+      { onConflict: "endpoint" }
+    );
 
   if (error) throw error;
 
-  return subscription;
+  return pushSubscription;
 }
 
 export async function disablePushNotifications() {
-  if (!("serviceWorker" in navigator)) return;
+  if (!("serviceWorker" in navigator)) return false;
 
   const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.getSubscription();
-  if (!subscription) return;
+  const pushSubscription =
+    await registration.pushManager.getSubscription();
 
-  const endpoint = subscriptionJson.endpoint;
-  await subscription.unsubscribe();
+  if (!pushSubscription) return false;
 
-  await supabase
+  const endpoint = pushSubscription.endpoint;
+  const unsubscribed = await pushSubscription.unsubscribe();
+
+  const { error } = await supabase
     .from("push_subscriptions")
-    .update({ is_active: false, updated_at: new Date().toISOString() })
+    .update({
+      is_active: false,
+      updated_at: new Date().toISOString(),
+    })
     .eq("endpoint", endpoint);
+
+  if (error) throw error;
+
+  return unsubscribed;
 }
 
 export async function getPushRegistrationState(projectId) {
   const status = getPushSupportStatus();
-  if (!status.supported) return { ...status, enabled: false };
+
+  if (!status.supported) {
+    return { ...status, enabled: false };
+  }
+
+  if (!projectId) {
+    return {
+      ...status,
+      supported: false,
+      enabled: false,
+      reason: "missing-project-id",
+    };
+  }
 
   const registration = await registerPushServiceWorker();
-  const subscription = await registration.pushManager.getSubscription();
+  const pushSubscription =
+    await registration.pushManager.getSubscription();
 
-  if (!subscription) return { ...status, enabled: false };
+  if (!pushSubscription) {
+    return { ...status, enabled: false };
+  }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("push_subscriptions")
     .select("id,is_active")
     .eq("project_id", projectId)
-    .eq("endpoint", subscriptionJson.endpoint)
+    .eq("endpoint", pushSubscription.endpoint)
     .maybeSingle();
+
+  if (error) {
+    console.warn("تعذر قراءة حالة اشتراك الإشعارات:", error.message);
+    return { ...status, enabled: false };
+  }
 
   return { ...status, enabled: data?.is_active === true };
 }
 
 function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
+  const cleanKey = String(base64String || "").trim();
+
+  if (!cleanKey) {
+    throw new Error("مفتاح VAPID العام فارغ");
+  }
+
+  const padding = "=".repeat((4 - (cleanKey.length % 4)) % 4);
+  const base64 = (cleanKey + padding)
     .replace(/-/g, "+")
     .replace(/_/g, "/");
+
   const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+
+  return Uint8Array.from(
+    [...rawData].map((character) => character.charCodeAt(0))
+  );
 }
