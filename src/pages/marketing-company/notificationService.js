@@ -57,6 +57,19 @@ export async function createMarketingNotification({
       new CustomEvent("marketing-notification-created", { detail: data })
     );
 
+    // الإرسال الحقيقي يتم من Supabase Edge Function إلى اشتراكات Web Push.
+    // لا نوقف حفظ التنبيه داخل اللوحة إذا فشل Push مؤقتاً.
+    supabase.functions
+      .invoke("send-web-push", {
+        body: { notification_id: data.id },
+      })
+      .then(({ error: pushError }) => {
+        if (pushError) console.warn("Push delivery failed:", pushError.message);
+      })
+      .catch((pushError) =>
+        console.warn("Push delivery failed:", pushError)
+      );
+
     return data;
   } catch (error) {
     console.warn("Notification error:", error);

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../services/supabase/client";
+import {
+  enablePushNotifications,
+  getPushRegistrationState,
+  isIosDevice,
+  isStandalonePwa,
+} from "../../services/pushNotifications";
 
 const severityStyles = {
   success:
@@ -25,6 +31,8 @@ export default function MarketingNotificationCenter({ project }) {
   const [notifications, setNotifications] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
   const panelRef = useRef(null);
 
   const unreadCount = useMemo(
@@ -36,6 +44,9 @@ export default function MarketingNotificationCenter({ project }) {
     if (!project?.id) return;
 
     loadNotifications();
+    getPushRegistrationState(project.id)
+      .then((state) => setPushEnabled(state.enabled))
+      .catch(() => setPushEnabled(false));
 
     const channel = supabase
       .channel(`marketing-notifications-${project.id}`)
@@ -105,40 +116,60 @@ export default function MarketingNotificationCenter({ project }) {
     }
   }
 
-  function showBrowserNotification(item) {
+  async function showBrowserNotification(item) {
+    // عند وجود Web Push حقيقي، Edge Function سترسل الإشعار عبر Service Worker.
+    if (pushEnabled) return;
+
     if (
       !("Notification" in window) ||
       Notification.permission !== "granted" ||
-      document.visibilityState === "visible"
+      document.visibilityState === "visible" ||
+      !("serviceWorker" in navigator)
     ) {
       return;
     }
 
-    const notification = new Notification(item.title || "تنبيه جديد", {
-      body: item.message || "",
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      tag: item.dedupe_key || item.id,
-    });
-
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(item.title || "تنبيه جديد", {
+        body: item.message || "",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: item.dedupe_key || item.id,
+        data: { url: `/projects/${project.id}` },
+      });
+    } catch (error) {
+      console.warn("Local notification fallback failed:", error);
+    }
   }
 
   async function requestBrowserPermission() {
-    if (!("Notification" in window)) {
-      alert("هذا المتصفح لا يدعم الإشعارات");
+    if (pushLoading) return;
+
+    if (isIosDevice() && !isStandalonePwa()) {
+      alert(
+        "على iPhone افتح الموقع بواسطة Safari، اضغط مشاركة، اختر إضافة إلى الشاشة الرئيسية، ثم افتحه من الأيقونة وفعّل الإشعارات."
+      );
       return;
     }
 
-    const permission = await Notification.requestPermission();
+    setPushLoading(true);
 
-    if (permission === "granted") {
-      new Notification("تم تشغيل الإشعارات", {
-        body: "ستصلك التنبيهات أثناء تشغيل النظام أو تثبيته كتطبيق.",
+    try {
+      await enablePushNotifications(project.id);
+      setPushEnabled(true);
+
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification("تم تشغيل إشعارات Finance OS", {
+        body: "تم تسجيل هذا الجهاز بنجاح، وستصلك التنبيهات حتى عند إغلاق التطبيق.",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        tag: "push-enabled",
       });
+    } catch (error) {
+      alert(error.message || "فشل تفعيل إشعارات الهاتف");
+    } finally {
+      setPushLoading(false);
     }
   }
 
@@ -223,9 +254,14 @@ export default function MarketingNotificationCenter({ project }) {
               <button
                 type="button"
                 onClick={requestBrowserPermission}
-                className="h-7 rounded-md bg-blue-600 px-2 text-[9px] font-black text-white hover:bg-blue-700"
+                disabled={pushLoading || pushEnabled}
+                className="h-7 rounded-md bg-blue-600 px-2 text-[9px] font-black text-white hover:bg-blue-700 disabled:cursor-default disabled:bg-emerald-600"
               >
-                إشعارات الهاتف
+                {pushLoading
+                  ? "جاري التفعيل..."
+                  : pushEnabled
+                  ? "الهاتف مفعّل"
+                  : "تفعيل الهاتف"}
               </button>
 
               <button
