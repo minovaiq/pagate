@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-family: Arial, sans-serif;
+}
+
+html.dark body {
+  background: #020617;
+  color: #f8fafc;
+}
+
+input, select, textarea, button {
+  font: inherit;
+}
+
+input, select, textarea {
+  color: #0f172a;
+}
+
+html.dark input, html.dark select, html.dark textarea {
+  color: #f8fafc;
+}
+
+::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+html.dark ::placeholder {
+  color: #94a3b8;
+}
