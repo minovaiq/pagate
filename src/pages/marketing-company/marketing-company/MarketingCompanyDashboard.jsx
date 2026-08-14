@@ -25,14 +25,10 @@ export default function MarketingCompanyDashboard({
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, []);
 
-  const goalStorageKey = `marketing-monthly-goal-${project.id}-${currentMonthKey}`;
-
   useEffect(() => {
     loadTransactions();
 
-    const savedGoal = Number(localStorage.getItem(goalStorageKey) || 0);
-    setMonthlyGoal(savedGoal);
-    setGoalInput(savedGoal ? String(savedGoal) : "");
+    loadMonthlyGoal();
 
     const channel = supabase
       .channel(`marketing-transactions-${project.id}`)
@@ -46,10 +42,43 @@ export default function MarketingCompanyDashboard({
         },
         () => loadTransactions()
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "marketing_monthly_goals",
+          filter: `project_id=eq.${project.id}`,
+        },
+        () => loadMonthlyGoal(true)
+      )
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [project.id, goalStorageKey]);
+  }, [project.id, currentMonthKey]);
+
+  async function loadMonthlyGoal(silent = false) {
+    try {
+      const { data, error } = await supabase
+        .from("marketing_monthly_goals")
+        .select("goal_amount")
+        .eq("project_id", project.id)
+        .eq("month_key", currentMonthKey)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const value = Number(data?.goal_amount || 0);
+      setMonthlyGoal(value);
+      setGoalInput(value ? String(value) : "");
+    } catch (err) {
+      console.error("فشل تحميل الهدف الشهري:", err);
+      if (!silent) {
+        setMonthlyGoal(0);
+        setGoalInput("");
+      }
+    }
+  }
 
   async function loadTransactions() {
     try {
@@ -70,14 +99,34 @@ export default function MarketingCompanyDashboard({
     }
   }
 
-  function saveMonthlyGoal(e) {
+  async function saveMonthlyGoal(e) {
     e.preventDefault();
 
     const value = Math.max(0, Number(goalInput || 0));
-    localStorage.setItem(goalStorageKey, String(value));
-    setMonthlyGoal(value);
-    setGoalInput(value ? String(value) : "");
-    setShowGoalModal(false);
+
+    try {
+      const { error } = await supabase
+        .from("marketing_monthly_goals")
+        .upsert(
+          {
+            project_id: project.id,
+            month_key: currentMonthKey,
+            goal_amount: value,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "project_id,month_key" }
+        );
+
+      if (error) throw error;
+
+      setMonthlyGoal(value);
+      setGoalInput(value ? String(value) : "");
+      setShowGoalModal(false);
+      window.dispatchEvent(new CustomEvent("marketing-data-changed"));
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "فشل حفظ الهدف الشهري");
+    }
   }
 
   // الدخل المحاسبي الصحيح:
