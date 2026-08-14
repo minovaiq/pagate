@@ -54,7 +54,15 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
 
       let query = supabase
         .from("page_orders")
-        .select("*")
+        .select(`
+          *,
+          delegate:delegates!page_orders_delegate_id_fkey (
+            id,
+            name,
+            full_name,
+            linked_user_id
+          )
+        `)
         .eq("project_id", project.id)
         .order("created_at", { ascending: false });
 
@@ -63,7 +71,22 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
       const { data: ordersData, error: ordersError } = await query;
       if (ordersError) throw ordersError;
 
-      setOrders(ordersData || []);
+      setOrders(
+        (ordersData || []).map((order) => {
+          const delegate = Array.isArray(order.delegate)
+            ? order.delegate[0]
+            : order.delegate;
+
+          return {
+            ...order,
+            delegate_display_name:
+              delegate?.full_name ||
+              delegate?.name ||
+              order.delegate_name ||
+              "-",
+          };
+        })
+      );
 
       if (!user) return;
 
@@ -707,6 +730,16 @@ function AddOrderForm({ project, onDone }) {
   async function submit(e) {
     e.preventDefault();
 
+    if (!form.customer_name.trim()) return alert("اكتب اسم الزبون");
+    if (!form.phone.trim()) return alert("اكتب رقم الهاتف");
+    if (!form.product_name.trim()) return alert("اكتب اسم المنتج");
+
+    const finalOrderPrice = Number(form.order_price || 0);
+
+    if (!Number.isFinite(finalOrderPrice) || finalOrderPrice <= 0) {
+      return alert("لا يمكن إضافة طلب بسعر صفر. اكتب سعر الطلب بشكل صحيح");
+    }
+
     try {
       setSaving(true);
 
@@ -721,7 +754,7 @@ function AddOrderForm({ project, onDone }) {
         phone: form.phone.trim(),
         address: form.address.trim(),
         product_name: form.product_name.trim(),
-        order_price: Number(form.order_price || 0),
+        order_price: finalOrderPrice,
         status: "pending",
       });
 
@@ -751,7 +784,7 @@ function AddOrderForm({ project, onDone }) {
         <Input label="الهاتف" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
         <Input label="العنوان" value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
         <Input label="اسم المنتج" value={form.product_name} onChange={(v) => setForm({ ...form, product_name: v })} />
-        <Input label="سعر الطلب" type="number" value={form.order_price} onChange={(v) => setForm({ ...form, order_price: v })} />
+        <Input label="سعر الطلب" type="number" min="1" value={form.order_price} onChange={(v) => setForm({ ...form, order_price: v })} />
       </div>
 
       <button disabled={saving} className="w-full h-9 rounded-lg bg-blue-600 text-white text-[11px] font-black">
@@ -778,6 +811,7 @@ function OrdersTable({
         <table className="w-full text-[10px]">
           <thead className="bg-slate-900 text-slate-400">
             <tr>
+              <th className="p-2 text-right">المندوب</th>
               <th className="p-2 text-right">الزبون</th>
               <th className="p-2 text-right">الهاتف</th>
               <th className="p-2 text-right">المنتج</th>
@@ -791,6 +825,9 @@ function OrdersTable({
           <tbody>
             {orders.map((order) => (
               <tr key={order.id} className="border-t border-slate-800 text-slate-200">
+                <td className="p-2 font-black text-cyan-300 whitespace-nowrap">
+                  {order.delegate_display_name || "-"}
+                </td>
                 <td className="p-2 font-bold">{order.customer_name || "-"}</td>
                 <td className="p-2 font-black text-blue-300">{order.phone || "-"}</td>
                 <td className="p-2">{order.product_name || "-"}</td>
@@ -856,12 +893,13 @@ function ProfitsSection({ stats, orders }) {
   );
 }
 
-function Input({ label, value, onChange, type = "text" }) {
+function Input({ label, value, onChange, type = "text", min }) {
   return (
     <label className="space-y-1">
       <span className="block text-[10px] text-slate-400 font-bold">{label}</span>
       <input
         type={type}
+        min={min}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 h-9 text-[12px] text-white outline-none"

@@ -7,6 +7,7 @@ import DelegateProfits from "./DelegateProfits";
 import PromotionBalance from "./PromotionBalance";
 import MyPagesReports from "./MyPagesReports";
 import OrderTelegramSettings from "./OrderTelegramSettings";
+import PromotionTargeting from "./PromotionTargeting";
 
 import MyOrders from "../user-orders/MyOrders";
 import MyProfits from "../user-orders/MyProfits";
@@ -41,6 +42,8 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
   const canWallet = isAdmin || permissions?.can_wallet === true;
   const canBalance = isAdmin || permissions?.can_balance === true;
   const canOrderBot = isAdmin || permissions?.can_order_bot === true;
+  const canPromotionTargeting =
+    isAdmin || canPagesDashboard || canReports;
 
   useEffect(() => {
     loadStats();
@@ -87,6 +90,10 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
       setActiveTab(getFirstAllowedTab());
     }
 
+    if (activeTab === "promotion_targeting" && !canPromotionTargeting) {
+      setActiveTab(getFirstAllowedTab());
+    }
+
     if (activeTab === "reports" && !canReports) {
       setActiveTab(getFirstAllowedTab());
     }
@@ -102,6 +109,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
     canWallet,
     canBalance,
     canOrderBot,
+    canPromotionTargeting,
     canReports,
   ]);
 
@@ -116,6 +124,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
     if (canWallet) return "wallet";
     if (canBalance) return "balance";
     if (canOrderBot) return "order_bot";
+    if (canPromotionTargeting) return "promotion_targeting";
     if (canReports) return "reports";
     return "no_access";
   }
@@ -209,6 +218,10 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
             <TabButton label="بوت الطلبات" active={activeTab === "order_bot"} onClick={() => setActiveTab("order_bot")} color="bg-teal-600" />
           )}
 
+          {canPromotionTargeting && (
+            <TabButton label="استهداف الترويج" active={activeTab === "promotion_targeting"} onClick={() => setActiveTab("promotion_targeting")} color="bg-blue-600" />
+          )}
+
           {canReports && (
             <TabButton label="التقارير" active={activeTab === "reports"} onClick={() => setActiveTab("reports")} color="bg-red-600" />
           )}
@@ -265,6 +278,10 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
 
       {activeTab === "order_bot" && canOrderBot && (
         <OrderTelegramSettings project={project} />
+      )}
+
+      {activeTab === "promotion_targeting" && canPromotionTargeting && (
+        <PromotionTargeting project={project} />
       )}
 
       {activeTab === "reports" && canReports && (

@@ -36,7 +36,7 @@ export default function AddOrder({ project, onDone }) {
     const finalOrderPrice = normalizeOrderPrice(form.order_price);
 
     if (!finalOrderPrice || finalOrderPrice <= 0) {
-      return alert("اكتب سعر الطلب بشكل صحيح");
+      return alert("لا يمكن إضافة طلب بسعر صفر. اكتب سعر الطلب بشكل صحيح");
     }
 
     try {
@@ -50,10 +50,20 @@ export default function AddOrder({ project, onDone }) {
       if (userError) throw userError;
       if (!user) throw new Error("المستخدم غير مسجل دخول");
 
+      const { data: delegateData, error: delegateError } = await supabase
+        .from("delegates")
+        .select("id, name, full_name, linked_user_id, project_id")
+        .eq("linked_user_id", user.id)
+        .eq("project_id", project.id)
+        .maybeSingle();
+
+      if (delegateError) throw delegateError;
+
       const payload = {
         project_id: project.id,
         my_pages_project_id: project.my_pages_project_id || null,
         user_id: user.id,
+        delegate_id: delegateData?.id || null,
         customer_name: form.customer_name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
@@ -130,6 +140,7 @@ export default function AddOrder({ project, onDone }) {
           <Input
             label="سعر الطلب بالدينار"
             type="number"
+            min="1"
             value={form.order_price}
             onChange={(v) => setForm({ ...form, order_price: v })}
             helper="مثال: إذا كتبت 25 ينحفظ 25,000 تلقائياً"
@@ -172,6 +183,7 @@ function Input({
   value,
   onChange,
   type = "text",
+  min,
   required = false,
   helper = "",
 }) {
@@ -184,6 +196,7 @@ function Input({
 
       <input
         type={type}
+        min={min}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 h-9 text-[12px] text-white outline-none focus:border-blue-500"
