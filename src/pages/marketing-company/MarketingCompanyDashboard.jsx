@@ -27,13 +27,10 @@ export default function MarketingCompanyDashboard({
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, []);
-
   useEffect(() => {
     loadTransactions();
-
     loadMonthlyGoal();
-
-    const refreshStats = () => loadTransactions(true);
+const refreshStats = () => loadTransactions(true);
 
     const channel = supabase
       .channel(`marketing-dashboard-live-${project.id}`)
@@ -101,9 +98,9 @@ export default function MarketingCompanyDashboard({
 
       if (error) throw error;
 
-      const value = Number(data?.goal_amount || 0);
-      setMonthlyGoal(value);
-      setGoalInput(value ? String(value) : "");
+      const sharedGoal = Number(data?.goal_amount || 0);
+      setMonthlyGoal(sharedGoal);
+      setGoalInput(sharedGoal > 0 ? String(sharedGoal) : "");
     } catch (err) {
       console.error("فشل تحميل الهدف الشهري:", err);
       if (!silent) {
@@ -221,11 +218,10 @@ export default function MarketingCompanyDashboard({
       if (error) throw error;
 
       setMonthlyGoal(value);
-      setGoalInput(value ? String(value) : "");
+      setGoalInput(value > 0 ? String(value) : "");
       setShowGoalModal(false);
-      window.dispatchEvent(new CustomEvent("marketing-data-changed"));
     } catch (err) {
-      console.error(err);
+      console.error("فشل حفظ الهدف الشهري:", err);
       alert(err.message || "فشل حفظ الهدف الشهري");
     }
   }
