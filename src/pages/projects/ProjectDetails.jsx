@@ -199,64 +199,28 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div dir="rtl" className={`min-h-screen p-2 ${theme.page}`}>
-      <div className="max-w-[1600px] mx-auto space-y-2">
+    <div dir="rtl" className={`min-h-screen p-1.5 sm:p-2 ${theme.page}`}>
+      <div className="max-w-[1600px] mx-auto space-y-1.5">
 
-        {/* HEADER */}
-        <div
-          className={`${theme.header} border rounded-xl p-3 flex items-center justify-between gap-2`}
-        >
-          <div>
-            <h1
-              className={`text-base font-black leading-none ${theme.textStrong}`}
-            >
-              {project.name}
-            </h1>
-
-            <p className={`text-[10px] mt-1 ${theme.textMuted}`}>
-              {projectTypeName(project.type)}
-            </p>
-
-            <p className={`text-[11px] mt-2 font-black ${theme.sub}`}>
-              {profile?.full_name || profile?.email || "حساب مستخدم"}
-            </p>
+        {/* Compact app header */}
+        <header className={`${theme.header} border rounded-xl px-2.5 py-2 flex items-center justify-between gap-2 min-h-[52px]`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-8 w-8 shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center text-sm font-black">ب</div>
+            <div className="min-w-0">
+              <h1 className={`text-[13px] sm:text-sm font-black leading-tight truncate ${theme.textStrong}`}>{project.name}</h1>
+              <p className={`text-[10px] leading-4 truncate ${theme.textMuted}`}>{profile?.full_name || profile?.email || projectTypeName(project.type)}</p>
+            </div>
           </div>
-
-          <div className="flex items-center gap-1 flex-wrap justify-end">
-            <button
-              onClick={() => setDarkMode((v) => !v)}
-              className="bg-violet-600 hover:bg-violet-700 rounded-lg px-3 h-9 text-[10px] font-black text-white"
-            >
-              {darkMode ? "إيقاف الليلي" : "تفعيل الليلي"}
-            </button>
-
-            <button
-              onClick={loadProjectAndPermissions}
-              className={`${theme.softBtn} rounded-lg px-3 h-9 text-[10px] font-black`}
-            >
-              تحديث
-            </button>
-
-            {isAdmin && (
-              <button
-                onClick={() => navigate("/projects")}
-                className="bg-blue-600 hover:bg-blue-700 rounded-lg px-3 h-9 text-[10px] font-black text-white"
-              >
-                المشاريع
-              </button>
-            )}
-
-            <button
-              onClick={logout}
-              className="bg-red-600 hover:bg-red-700 rounded-lg px-3 h-9 text-[10px] font-black text-white"
-            >
-              خروج
-            </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>{darkMode ? "☀" : "☾"}</button>
+            <button type="button" onClick={loadProjectAndPermissions} title="تحديث" aria-label="تحديث" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>↻</button>
+            {isAdmin && <button type="button" onClick={() => navigate("/projects")} title="المشاريع" aria-label="المشاريع" className="h-8 w-8 rounded-lg bg-blue-600 text-white text-base flex items-center justify-center">▦</button>}
+            <button type="button" onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="h-8 w-8 rounded-lg bg-rose-700 text-white text-sm flex items-center justify-center">⏻</button>
           </div>
-        </div>
+        </header>
 
         {/* PROJECT CONTENT */}
-        <div className={`${theme.nav} border rounded-xl p-1`}>
+        <div className={`${theme.nav} border rounded-xl p-1 sm:p-1.5`}>
 
           {project.type === "marketing_company" && (
             <MarketingCompanyDashboard
