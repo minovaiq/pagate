@@ -101,7 +101,10 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         .eq("project_id", project.id)
         .order("created_at", { ascending: false });
 
-      if (!isAdmin) {
+      // Project-wide orders are visible only with explicit order-management permission.
+      // Regular delegates remain restricted to their own orders.
+      const canViewAllOrders = isAdmin || permissions?.can_user_orders === true;
+      if (!canViewAllOrders) {
         query = query.eq("user_id", user.id);
       }
 
