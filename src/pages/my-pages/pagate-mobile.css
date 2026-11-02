@@ -37,3 +37,7 @@
  .pagate-light article .grid { gap:6px; }
  .pagate-light .pagate-bottom-nav button { font-size:10px; }
 }
+
+/* Preserve white labels on filled action buttons and active tabs. */
+.pagate-light button.bg-blue-600, .pagate-light button.bg-red-600, .pagate-light button.bg-rose-700, .pagate-light button.bg-emerald-600, .pagate-light button.bg-amber-600 { color:#fff !important; }
+.pagate-light .bg-blue-600.text-white, .pagate-light .bg-emerald-600.text-white { color:#fff !important; }
