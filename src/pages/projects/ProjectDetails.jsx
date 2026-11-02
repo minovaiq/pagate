@@ -1,3 +1,4 @@
+import { RefreshCw, LogOut, PanelsTopLeft, Sun, Moon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../services/supabase/client";
@@ -212,10 +213,10 @@ export default function ProjectDetails() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {project.type !== "my_pages" && <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>{darkMode ? "☀" : "☾"}</button>}
-            <button type="button" onClick={loadProjectAndPermissions} title="تحديث" aria-label="تحديث" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>↻</button>
-            {isAdmin && <button type="button" onClick={() => navigate("/projects")} title="المشاريع" aria-label="المشاريع" className="h-8 w-8 rounded-lg bg-blue-600 text-white text-base flex items-center justify-center">▦</button>}
-            <button type="button" onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="h-8 w-8 rounded-lg bg-rose-700 text-white text-sm flex items-center justify-center">⏻</button>
+            {project.type !== "my_pages" && <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg flex items-center justify-center`}>{darkMode ? <Sun size={17}/> : <Moon size={17}/>}</button>}
+            <button type="button" onClick={loadProjectAndPermissions} title="تحديث" aria-label="تحديث" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}><RefreshCw size={17}/></button>
+            {isAdmin && <button type="button" onClick={() => navigate("/projects")} title="المشاريع" aria-label="المشاريع" className="h-8 w-8 rounded-lg bg-blue-600 text-white flex items-center justify-center"><PanelsTopLeft size={17}/></button>}
+            <button type="button" onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="h-8 w-8 rounded-lg bg-rose-700 text-white flex items-center justify-center"><LogOut size={17}/></button>
           </div>
         </header>
 
