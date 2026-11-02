@@ -1,3 +1,5 @@
+import "../my-pages/pagate-mobile.css";
+import { House, ClipboardList, Plus, Wallet, Settings2, Users, BarChart3, Package, RefreshCw } from "lucide-react";
 import { Phone, Pencil, Truck, RotateCcw, XCircle, Clock3, PackageCheck, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../services/supabase/client";
@@ -12,6 +14,7 @@ const STATUS_LABELS = {
 
 export default function UserOrdersDashboard({ project, permissions, isAdmin, initialTab = "dashboard", embedded = false }) {
   const [activeTab, setActiveTab] = useState(initialTab);
+  const [showMobileMore, setShowMobileMore] = useState(false);
   const [orders, setOrders] = useState([]);
   const [profitRules, setProfitRules] = useState([]);
 
@@ -346,8 +349,8 @@ function urlBase64ToUint8Array(base64String) {
   }, [orders]);
 
   return (
-    <div className="space-y-2" dir="rtl">
-      {!embedded && <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+    <div className="space-y-2 pb-20 md:pb-2" dir="rtl">
+      {!embedded && <div className="hidden md:flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
         <TabButton label="طلبات المندوبين" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} color="bg-blue-600" />
         <TabButton label="محفظتي" active={activeTab === "wallet"} onClick={() => setActiveTab("wallet")} color="bg-cyan-600" />
         {canAdd && <TabButton label="إضافة طلب" active={activeTab === "add"} onClick={() => setActiveTab("add")} color="bg-purple-600" />}
@@ -355,6 +358,25 @@ function urlBase64ToUint8Array(base64String) {
         <button onClick={loadAll} className="mr-auto bg-slate-800 text-white px-3 h-8 rounded-md text-[10px] font-bold">تحديث</button>
       </div>}
 
+      {!embedded && <nav aria-label="التنقل الرئيسي" className="pagate-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-around gap-1 max-w-lg mx-auto">
+          {[
+            ["dashboard",House,"الرئيسية"],
+            ["dashboard",ClipboardList,"الطلبات"],
+            canAdd && ["add",Plus,"إضافة"],
+            ["wallet",Wallet,"المحفظة"],
+            ["more",Settings2,"المزيد"],
+          ].filter(Boolean).map(([key,Icon,label],index)=><button key={index} type="button"
+            onClick={()=>key==="more"?setShowMobileMore(v=>!v):(setActiveTab(key),setShowMobileMore(false))}
+            className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold ${(activeTab===key && (key!=="dashboard" || index===1)) || (key==="more" && showMobileMore)?"bg-blue-600 text-white":"text-slate-400"}`}>
+            <Icon size={20} strokeWidth={2}/><span>{label}</span>
+          </button>)}
+        </div>
+      </nav>}
+      {!embedded && showMobileMore && <div className="md:hidden fixed bottom-[76px] inset-x-3 z-40 rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-xl">
+        <button className="w-full rounded-xl bg-slate-900 p-3 text-right text-sm font-bold" onClick={()=>{setShowMobileMore(false);loadAll()}}><RefreshCw size={16} className="inline ml-2"/>تحديث البيانات</button>
+        {isAdmin && <button className="w-full rounded-xl bg-slate-900 p-3 mt-2 text-right text-sm font-bold" onClick={()=>{setActiveTab("profit-rules");setShowMobileMore(false)}}><Settings2 size={16} className="inline ml-2"/>إعدادات الأرباح</button>}
+      </div>}
       {activeTab === "dashboard" && <>
         <div className="rounded-xl border border-slate-800 bg-slate-950 p-2 space-y-2">
           <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1" style={{scrollbarWidth:"none"}}>
