@@ -41,3 +41,11 @@
 /* Preserve white labels on filled action buttons and active tabs. */
 .pagate-light button.bg-blue-600, .pagate-light button.bg-red-600, .pagate-light button.bg-rose-700, .pagate-light button.bg-emerald-600, .pagate-light button.bg-amber-600 { color:#fff !important; }
 .pagate-light .bg-blue-600.text-white, .pagate-light .bg-emerald-600.text-white { color:#fff !important; }
+
+/* iOS Safari does not zoom focused form fields when their font-size is >=16px. */
+@media (max-width:767px) {
+ .pagate-light input, .pagate-light select, .pagate-light textarea { font-size:16px !important; }
+ .pagate-light .pagate-bottom-nav { padding-bottom:max(8px,env(safe-area-inset-bottom)); }
+ .pagate-light article { border-radius:16px; }
+ .pagate-light article .bg-blue-600 { color:#fff !important; }
+}
