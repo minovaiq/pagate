@@ -170,13 +170,13 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin, ini
       const { data: profitsData } = await supabase
         .from("delegate_profit_payments")
         .select("*")
-        .eq("delegate_id", delegateData.id)
+        .eq("delegate_id", financialDelegate.id)
         .order("created_at", { ascending: false });
 
       const { data: settlementsData } = await supabase
         .from("delegate_profit_settlements")
         .select("*")
-        .eq("delegate_id", delegateData.id)
+        .eq("delegate_id", financialDelegate.id)
         .order("created_at", { ascending: false });
 
       setDelegateCampaigns(campaignsData || []);
