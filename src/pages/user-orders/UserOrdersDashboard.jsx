@@ -350,6 +350,16 @@ function urlBase64ToUint8Array(base64String) {
     };
   }, [myDeliveredOrders, delegateCampaigns, delegateProfits, delegateSettlements]);
 
+  // Keep the home balance identical to the wallet calculation.
+  const homeBalance = useMemo(() => {
+    const personal = myPersonalOrders.filter(o => o.status === "delivered").reduce((sum,o) => sum + Number(o.profit_amount || 0), 0);
+    const campaigns = delegateCampaigns.reduce((sum,c) => sum + Number(c.delegate_profit || 0), 0);
+    const manual = delegateProfits.filter(p => !p.source_order_id).reduce((sum,p) => sum + Number(p.amount || 0), 0);
+    const supervision = supervisorAccessEnabled ? supervisorCommissions.reduce((sum,c) => sum + Number(c.amount || 0), 0) : 0;
+    const paid = delegateSettlements.reduce((sum,s) => sum + Number(s.amount || 0), 0);
+    return { total: personal + campaigns + manual + supervision, paid, remaining: personal + campaigns + manual + supervision - paid };
+  }, [myPersonalOrders, delegateCampaigns, delegateProfits, delegateSettlements, supervisorCommissions, supervisorAccessEnabled]);
+
   const statusCounts = useMemo(() => orders.reduce((a,o) => { a[o.status] = (a[o.status] || 0) + 1; return a; }, {}), [orders]);
 
   const stats = useMemo(() => {
@@ -395,16 +405,28 @@ function urlBase64ToUint8Array(base64String) {
         {isAdmin && <button className="w-full rounded-xl bg-slate-900 p-3 mt-2 text-right text-sm font-bold" onClick={()=>{setActiveTab("profit-rules");setShowMobileMore(false)}}><Settings2 size={16} className="inline ml-2"/>إعدادات الأرباح</button>}
       </div>}
       {!embedded && activeTab === "home" && <div className="space-y-3">
-        <div className="rounded-2xl bg-blue-600 p-4 text-white">
-          <div className="text-lg font-black">نظام المندوبات</div>
-          <div className="text-xs opacity-90 mt-1">ملخص الطلبات والأرباح</div>
+        <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-blue-700 via-blue-600 to-sky-500 p-5 text-white shadow-lg shadow-blue-600/20 min-h-[190px]">
+          <div aria-hidden="true" className="absolute -top-16 -left-12 h-48 w-48 rounded-full border-[24px] border-white/10"/>
+          <div aria-hidden="true" className="absolute -bottom-24 right-16 h-44 w-44 rounded-full bg-white/10 blur-xl"/>
+          <div className="relative flex items-start justify-between">
+            <div><div className="text-xs font-semibold text-blue-100">محفظة المندوبة</div><div className="mt-1 text-sm font-black">الرصيد المتبقي</div></div>
+            <Wallet size={26} strokeWidth={1.8} className="text-white/90"/>
+          </div>
+          <div className="relative mt-4 flex items-baseline gap-2" dir="ltr">
+            <span className="text-3xl font-black tracking-tight tabular-nums">{homeBalance.remaining.toLocaleString("en-US")}</span>
+            <span className="text-sm font-bold text-blue-100">د.ع</span>
+          </div>
+          <div className="relative mt-4 flex justify-between border-t border-white/25 pt-3 text-xs">
+            <div><span className="block text-blue-100">إجمالي الأرباح</span><strong className="text-sm tabular-nums">{homeBalance.total.toLocaleString("en-US")}</strong></div>
+            <div className="text-left"><span className="block text-blue-100">المسدد</span><strong className="text-sm tabular-nums">{homeBalance.paid.toLocaleString("en-US")}</strong></div>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           {[
             ["إجمالي الطلبات",stats.totalOrders,"text-blue-600"],
             ["الواصل",stats.delivered,"text-emerald-600"],
             ["الراجع",stats.returned,"text-rose-600"],
-            ["أرباح الطلبات",stats.totalProfit,"text-blue-600"],
+            ["أرباح الطلبات",myPersonalOrders.filter(o=>o.status==="delivered").reduce((s,o)=>s+Number(o.profit_amount||0),0),"text-blue-600"],
           ].map(([label,value,color])=><div key={label} className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
             <div className="text-xs text-slate-400">{label}</div>
             <div className={`text-lg font-black mt-1 ${color}`}>{Number(value).toLocaleString("en-US")}</div>
