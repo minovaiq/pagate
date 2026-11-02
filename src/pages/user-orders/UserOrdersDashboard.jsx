@@ -21,6 +21,10 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
 
   const [loading, setLoading] = useState(true);
   const [searchPhone, setSearchPhone] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [delegateFilter, setDelegateFilter] = useState("all");
+  const [supervisorCommissions, setSupervisorCommissions] = useState([]);
+  const [supervisorAccessEnabled, setSupervisorAccessEnabled] = useState(false);
 
   const canAdd = isAdmin || permissions?.can_add === true;
   const canEdit = isAdmin || permissions?.can_edit === true;
@@ -61,6 +65,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         .maybeSingle();
       if (accessError) throw accessError;
       const canViewAll = isAdmin || access?.can_manage_all_orders === true;
+      setSupervisorAccessEnabled(access?.can_manage_all_orders === true);
 
       let query = supabase
         .from("page_orders")
@@ -110,6 +115,11 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         .maybeSingle();
 
       setLinkedDelegate(delegateData || null);
+      if (access?.can_manage_all_orders && delegateData?.id) {
+        const { data: commissionRows, error: commissionError } = await supabase.from("supervisor_order_commissions").select("id,amount,source_order_id,created_at").eq("supervisor_delegate_id", delegateData.id);
+        if (commissionError) console.error("Supervisor commissions:", commissionError);
+        setSupervisorCommissions(commissionRows || []);
+      } else setSupervisorCommissions([]);
 
       if (!delegateData) {
         setDelegateCampaigns([]);
@@ -256,13 +266,20 @@ function urlBase64ToUint8Array(base64String) {
   }
 
   const searchedOrders = useMemo(() => {
-    if (!searchPhone.trim()) return orders;
     const search = normalizePhone(searchPhone);
-    return orders.filter((item) => normalizePhone(item.phone).includes(search));
-  }, [orders, searchPhone]);
+    return orders.filter((item) =>
+      (!search || normalizePhone(item.phone).includes(search)) &&
+      (statusFilter === "all" || item.status === statusFilter) &&
+      (delegateFilter === "all" || String(item.delegate_id || "") === delegateFilter)
+    );
+  }, [orders, searchPhone, statusFilter, delegateFilter]);
+
+  const myDeliveredOrders = useMemo(() => orders.filter(o => o.status === "delivered" && linkedDelegate && (String(o.delegate_id) === String(linkedDelegate.id) || (!o.delegate_id && o.user_id === linkedDelegate.linked_user_id))), [orders, linkedDelegate]);
+  const supervisorProfit = supervisorCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const personalOrderProfit = myDeliveredOrders.reduce((sum, row) => sum + Number(row.profit_amount || 0), 0);
 
   const walletStats = useMemo(() => {
-    const deliveredOrders = orders.filter((o) => o.status === "delivered");
+    const deliveredOrders = myDeliveredOrders;
 
     const orderProfit = deliveredOrders.reduce(
       (sum, item) => sum + Number(item.profit_amount || 0),
@@ -296,7 +313,7 @@ function urlBase64ToUint8Array(base64String) {
       deliveredOrders: deliveredOrders.length,
       campaignsCount: delegateCampaigns.length,
     };
-  }, [orders, delegateCampaigns, delegateProfits, delegateSettlements]);
+  }, [myDeliveredOrders, delegateCampaigns, delegateProfits, delegateSettlements]);
 
   const stats = useMemo(() => {
     const delivered = orders.filter((o) => o.status === "delivered");
@@ -328,6 +345,14 @@ function urlBase64ToUint8Array(base64String) {
             <TabButton label="إعدادات الأرباح" active={activeTab === "profit-rules"} onClick={() => setActiveTab("profit-rules")} color="bg-orange-600" />
           )}
 
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-8 text-[10px]">
+            <option value="all">كل الحالات</option>
+            {Object.entries(STATUS_LABELS).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <select value={delegateFilter} onChange={e => setDelegateFilter(e.target.value)} className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-8 text-[10px] max-w-[160px]">
+            <option value="all">كل المندوبين</option>
+            {[...new Map(orders.filter(o => o.delegate_id).map(o => [String(o.delegate_id), o.delegate_display_name])).entries()].map(([id,name]) => <option key={id} value={id}>{name}</option>)}
+          </select>
           <input
             type="text"
             placeholder="بحث برقم الهاتف..."
@@ -336,8 +361,8 @@ function urlBase64ToUint8Array(base64String) {
             className="bg-slate-900 border border-slate-700 rounded-md px-3 h-8 text-[10px] text-white outline-none min-w-[180px]"
           />
 
-          {searchPhone && (
-            <button onClick={() => setSearchPhone("")} className="bg-red-600 px-3 h-8 rounded-md text-[10px] font-black text-white">
+          {(searchPhone || statusFilter !== "all" || delegateFilter !== "all") && (
+            <button onClick={() => { setSearchPhone(""); setStatusFilter("all"); setDelegateFilter("all"); }} className="bg-red-600 px-3 h-8 rounded-md text-[10px] font-black text-white">
               مسح
             </button>
           )}
@@ -360,9 +385,10 @@ function urlBase64ToUint8Array(base64String) {
             <StatCard title="كل الطلبات" value={stats.totalOrders} color="text-blue-400" />
             <StatCard title="واصل" value={stats.delivered} color="text-green-400" />
             <StatCard title="راجع" value={stats.returned} color="text-red-400" />
-            <StatCard title="الأرباح" value={walletStats.totalProfit} color="text-emerald-400" suffix=" د.ع" />
+            <StatCard title="أرباح طلباتي" value={personalOrderProfit} color="text-emerald-400" suffix=" د.ع" />
           </div>
 
+          {supervisorAccessEnabled && <div className="grid grid-cols-2 md:grid-cols-3 gap-1"><StatCard title="عمولة الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع" /><StatCard title="مجموع أرباحي" value={personalOrderProfit + supervisorProfit} color="text-emerald-400" suffix=" د.ع" /><StatCard title="الطلبات المعروضة" value={searchedOrders.length} color="text-blue-400" /></div>}
           <OrdersTable
             orders={searchedOrders.slice(0, 8)}
             loading={loading}
@@ -386,7 +412,7 @@ function urlBase64ToUint8Array(base64String) {
       )}
 
       {activeTab === "profits" && (
-        <ProfitsSection stats={stats} orders={searchedOrders} />
+        <ProfitsSection stats={stats} orders={myDeliveredOrders} supervisorProfit={supervisorProfit} />
       )}
 
       {activeTab === "wallet" && (
@@ -396,7 +422,7 @@ function urlBase64ToUint8Array(base64String) {
           campaigns={delegateCampaigns}
           profits={delegateProfits}
           settlements={delegateSettlements}
-          orders={orders}
+          orders={myDeliveredOrders}
         />
       )}
 
@@ -885,17 +911,18 @@ function OrdersTable({
   );
 }
 
-function ProfitsSection({ stats, orders }) {
+function ProfitsSection({ stats, orders, supervisorProfit = 0 }) {
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
 
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
-        <StatCard title="الطلبات الواصلة" value={stats.delivered} color="text-green-400" />
-        <StatCard title="مبيعات واصلة" value={stats.totalSales} color="text-blue-400" suffix=" د.ع" />
-        <StatCard title="صافي أرباح الطلبات" value={stats.totalProfit} color="text-emerald-400" suffix=" د.ع" />
+        <StatCard title="الطلبات الواصلة" value={orders.length} color="text-green-400" />
+        <StatCard title="مبيعات واصلة" value={orders.reduce((s,o) => s + Number(o.order_price || 0), 0)} color="text-blue-400" suffix=" د.ع" />
+        <StatCard title="أرباح طلباتي" value={orders.reduce((s,o) => s + Number(o.profit_amount || 0), 0)} color="text-emerald-400" suffix=" د.ع" />
       </div>
 
+      {supervisorProfit > 0 && <div className="grid grid-cols-2 gap-1"><StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع" /><StatCard title="مجموع أرباحي" value={supervisorProfit + orders.reduce((s,o) => s + Number(o.profit_amount || 0), 0)} color="text-emerald-400" suffix=" د.ع" /></div>}
       <OrdersTable
         orders={deliveredOrders}
         loading={false}
