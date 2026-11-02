@@ -414,25 +414,22 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
   const campaignProfit = campaigns.reduce((s,c) => s + Number(c.delegate_profit || 0),0);
   // Order-linked profit payments are already included in personalProfit.
   const manualProfit = profits.filter(p => !p.source_order_id).reduce((s,p) => s + Number(p.amount || 0),0);
-  const total = personalProfit + supervisorProfit + campaignProfit + manualProfit;
+  // Historical manual entries are supervision earnings, not a separate wallet category.
+  // Preserve any campaign earnings in the supervision total so historical balances remain intact.
+  const supervisionTotal = supervisorProfit + manualProfit + campaignProfit;
+  const total = personalProfit + supervisionTotal;
   const paid = settlements.reduce((s,p) => s + Number(p.amount || 0),0);
+  const remaining = total - paid;
   return <div className="space-y-2">
     <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs font-bold text-white">
       محفظتي — {linkedDelegate?.full_name || linkedDelegate?.name || "حسابي"}
     </div>
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-      <StatCard title="أرباح طلباتي" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
-      <StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع"/>
-      <StatCard title="أرباح الإشراف اليدوية السابقة" value={manualProfit} color="text-violet-400" suffix=" د.ع"/>
-      <StatCard title="أرباح الحملات" value={campaignProfit} color="text-amber-400" suffix=" د.ع"/>
-      <StatCard title="إجمالي أرباحي" value={total} color="text-green-400" suffix=" د.ع"/>
-      <StatCard title="المتبقي بعد التسديد" value={total-paid} color="text-blue-400" suffix=" د.ع"/>
-    </div>
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-      <StatCard title="طلباتي" value={orders.length} color="text-white"/>
-      <StatCard title="طلباتي الواصلة" value={delivered.length} color="text-emerald-400"/>
+    <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <StatCard title="أرباح الطلبات" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
+      <StatCard title="أرباح الإشراف" value={supervisionTotal} color="text-cyan-400" suffix=" د.ع"/>
+      <StatCard title="المجموع" value={total} color="text-green-400" suffix=" د.ع"/>
       <StatCard title="المسدد" value={paid} color="text-slate-300" suffix=" د.ع"/>
-      <StatCard title="عدد قيود الإشراف اليدوية" value={profits.filter(p=>!p.source_order_id).length} color="text-violet-300"/>
+      <StatCard title="المتبقي" value={remaining} color="text-blue-400" suffix=" د.ع"/>
     </div>
     <OrdersTable orders={orders} loading={false} canEdit={false} isAdmin={false}/>
     <SimpleTable title="عمولات الإشراف الجديدة" rows={supervisorCommissions.map(c => ({
