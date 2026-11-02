@@ -28,7 +28,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
   const [supervisorAccessEnabled, setSupervisorAccessEnabled] = useState(false);
 
   const canAdd = isAdmin || permissions?.can_add === true;
-  const canEdit = isAdmin || permissions?.can_edit === true;
+  const canEdit = isAdmin || permissions?.can_edit === true || supervisorAccessEnabled;
 
   useEffect(() => {
     loadAll();
@@ -117,8 +117,6 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
           };
         })
       );
-
-      if (!user) return;
 
       const { data: delegateData, error: delegateError } = await supabase
         .from("delegates")
@@ -247,12 +245,13 @@ function urlBase64ToUint8Array(base64String) {
 }
   async function updateStatus(orderId, status) {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("page_orders")
         .update({ status })
-        .eq("id", orderId);
+        .eq("id", orderId).select("id");
 
       if (error) throw error;
+      if (!data?.length) throw new Error("لم يتم تغيير الحالة؛ تحقق من صلاحيات الحساب.");
       await loadAll();
     } catch (err) {
       alert(err.message || "فشل تحديث حالة الطلب");
@@ -948,10 +947,11 @@ function EditOrderDialog({ order, onClose, onSaved }) {
     if (saving) return;
     setSaving(true);
     try {
-      const { error } = await supabase.from("page_orders").update({
+      const { data, error } = await supabase.from("page_orders").update({
         ...form, order_price: Number(form.order_price),
-      }).eq("id", order.id);
+      }).eq("id", order.id).select("id");
       if (error) throw error;
+      if (!data?.length) throw new Error("لم يتم حفظ الطلب؛ تحقق من صلاحية التعديل.");
       onSaved();
     } catch (err) {
       alert(err.message || "تعذر تعديل الطلب");
