@@ -22,6 +22,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
   const [loading, setLoading] = useState(true);
   const [searchPhone, setSearchPhone] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingOrder, setEditingOrder] = useState(null);
   const [delegateFilter, setDelegateFilter] = useState("all");
   const [supervisorCommissions, setSupervisorCommissions] = useState([]);
   const [supervisorAccessEnabled, setSupervisorAccessEnabled] = useState(false);
@@ -328,6 +329,8 @@ function urlBase64ToUint8Array(base64String) {
     };
   }, [myDeliveredOrders, delegateCampaigns, delegateProfits, delegateSettlements]);
 
+  const statusCounts = useMemo(() => orders.reduce((a,o) => { a[o.status] = (a[o.status] || 0) + 1; return a; }, {}), [orders]);
+
   const stats = useMemo(() => {
     const delivered = orders.filter((o) => o.status === "delivered");
     const returned = orders.filter((o) => o.status === "returned");
@@ -358,10 +361,6 @@ function urlBase64ToUint8Array(base64String) {
             <TabButton label="إعدادات الأرباح" active={activeTab === "profit-rules"} onClick={() => setActiveTab("profit-rules")} color="bg-orange-600" />
           )}
 
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-8 text-[10px]">
-            <option value="all">كل الحالات</option>
-            {Object.entries(STATUS_LABELS).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
           <select value={delegateFilter} onChange={e => setDelegateFilter(e.target.value)} className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-8 text-[10px] max-w-[160px]">
             <option value="all">كل المندوبين</option>
             {[...new Map(orders.filter(o => o.delegate_id).map(o => [String(o.delegate_id), o.delegate_display_name])).entries()].map(([id,name]) => <option key={id} value={id}>{name}</option>)}
@@ -392,6 +391,8 @@ function urlBase64ToUint8Array(base64String) {
         </div>
       </div>
 
+      {(activeTab === "dashboard" || activeTab === "orders") && <div className="flex flex-wrap gap-1 items-center"><button onClick={() => setStatusFilter("all")} className={`rounded-md px-2 h-7 text-[10px] font-bold ${statusFilter === "all" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>الكل ({orders.length})</button>{Object.entries(STATUS_LABELS).map(([key,label]) => <button key={key} onClick={() => setStatusFilter(key)} className={`rounded-md px-2 h-7 text-[10px] font-bold ${statusFilter === key ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>{label} ({statusCounts[key] || 0})</button>)}<span className="text-[10px] text-slate-400 mr-auto">المعروض: {searchedOrders.length}</span></div>}
+
       {activeTab === "dashboard" && (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
@@ -409,6 +410,7 @@ function urlBase64ToUint8Array(base64String) {
             onStatusChange={updateStatus}
             isAdmin={isAdmin}
             onDelete={deleteOrder}
+            onEdit={setEditingOrder}
           />
         </>
       )}
@@ -421,6 +423,7 @@ function urlBase64ToUint8Array(base64String) {
           onStatusChange={updateStatus}
           isAdmin={isAdmin}
           onDelete={deleteOrder}
+          onEdit={setEditingOrder}
         />
       )}
 
@@ -442,6 +445,8 @@ function urlBase64ToUint8Array(base64String) {
       {activeTab === "add" && canAdd && (
         <AddOrderForm project={project} onDone={loadAll} />
       )}
+
+      {editingOrder && <EditOrderDialog order={editingOrder} onClose={() => setEditingOrder(null)} onSaved={() => { setEditingOrder(null); loadAll(); }} />}
 
       {activeTab === "profit-rules" && isAdmin && (
         <ProfitRulesSection project={project} rules={profitRules} onReload={loadProfitRules} />
@@ -710,6 +715,8 @@ function ProfitRulesSection({ project, rules, onReload }) {
               <th className="p-2 text-right">من سعر</th>
               <th className="p-2 text-right">إلى سعر</th>
               <th className="p-2 text-right">الربح</th>
+              <th className="p-2 text-right">التاريخ</th>
+              {canEdit && <th className="p-2 text-right">إجراء</th>}
               <th className="p-2 text-right">إجراء</th>
             </tr>
           </thead>
@@ -853,6 +860,7 @@ function OrdersTable({
   onStatusChange,
   isAdmin,
   onDelete,
+  onEdit,
 }) {
   if (loading) return <EmptyState text="جاري تحميل الطلبات..." />;
   if (!orders.length) return <EmptyState text="لا توجد طلبات حالياً" />;
@@ -905,6 +913,8 @@ function OrdersTable({
                   {Number(order.profit_amount || 0).toLocaleString()} د.ع
                 </td>
 
+                <td className="p-2 text-slate-400 whitespace-nowrap">{order.created_at ? new Date(order.created_at).toLocaleDateString("ar-IQ") : "-"}</td>
+                {canEdit && <td className="p-2"><button onClick={() => onEdit?.(order)} className="bg-amber-600 text-white rounded-md px-2 h-7 font-bold">تعديل</button></td>}
                 {isAdmin && (
                   <td className="p-2">
                     <button
@@ -922,6 +932,40 @@ function OrdersTable({
       </div>
     </div>
   );
+}
+
+function EditOrderDialog({ order, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    customer_name: order.customer_name || "",
+    phone: order.phone || "",
+    address: order.address || "",
+    product_name: order.product_name || "",
+    order_price: order.order_price ?? 0,
+  });
+  const [saving, setSaving] = useState(false);
+  async function save(e) {
+    e.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("page_orders").update({
+        ...form, order_price: Number(form.order_price),
+      }).eq("id", order.id);
+      if (error) throw error;
+      onSaved();
+    } catch (err) {
+      alert(err.message || "تعذر تعديل الطلب");
+    } finally { setSaving(false); }
+  }
+  return <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-3" dir="rtl">
+    <form onSubmit={save} className="bg-slate-950 border border-slate-700 rounded-xl p-3 w-full max-w-lg space-y-2">
+      <div className="flex justify-between items-center"><h3 className="font-bold text-white text-sm">تعديل الطلب</h3><button type="button" onClick={onClose} className="text-slate-300">إغلاق</button></div>
+      {Object.entries({ customer_name:"الزبون",phone:"الهاتف",address:"العنوان",product_name:"المنتج",order_price:"السعر" }).map(([key,label]) =>
+        <label key={key} className="block text-xs text-slate-300">{label}<input required={key !== "address"} type={key === "order_price" ? "number" : "text"} min={key === "order_price" ? 0 : undefined} value={form[key]} onChange={e => setForm(f => ({...f,[key]:e.target.value}))} className="block w-full h-9 mt-1 rounded-md bg-slate-900 border border-slate-700 text-white px-2"/></label>
+      )}
+      <button disabled={saving} className="bg-blue-600 text-white rounded-md px-4 h-9 text-xs font-bold disabled:opacity-50">{saving ? "جاري الحفظ..." : "حفظ التعديل"}</button>
+    </form>
+  </div>;
 }
 
 function ProfitsSection({ orders, supervisorProfit = 0, supervisorAccessEnabled = false }) {
