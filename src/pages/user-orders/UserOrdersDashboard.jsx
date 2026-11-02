@@ -439,6 +439,7 @@ function urlBase64ToUint8Array(base64String) {
           orders={myPersonalOrders}
           supervisorProfit={supervisorProfit}
           supervisorCommissions={supervisorCommissions}
+          isSupervisor={supervisorAccessEnabled}
         />
       )}
 
@@ -455,7 +456,7 @@ function urlBase64ToUint8Array(base64String) {
   );
 }
 
-function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settlements, orders, supervisorProfit = 0, supervisorCommissions = [] }) {
+function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settlements, orders, supervisorProfit = 0, supervisorCommissions = [], isSupervisor = false }) {
   const delivered = orders.filter(o => o.status === "delivered");
   const personalProfit = delivered.reduce((s,o) => s + Number(o.profit_amount || 0),0);
   const campaignProfit = campaigns.reduce((s,c) => s + Number(c.delegate_profit || 0),0);
@@ -464,27 +465,28 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
   // Historical manual entries are supervision earnings, not a separate wallet category.
   // Preserve any campaign earnings in the supervision total so historical balances remain intact.
   const supervisionTotal = supervisorProfit + manualProfit + campaignProfit;
-  const total = personalProfit + supervisionTotal;
+  const otherProfit = manualProfit + campaignProfit;
+  const total = personalProfit + (isSupervisor ? supervisionTotal : otherProfit);
   const paid = settlements.reduce((s,p) => s + Number(p.amount || 0),0);
   const remaining = total - paid;
   return <div className="space-y-2">
     <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs font-bold text-white">
       محفظتي — {linkedDelegate?.full_name || linkedDelegate?.name || "حسابي"}
     </div>
-    <div className="wallet-summary grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+    <div className={`wallet-summary grid grid-cols-2 gap-2 sm:grid-cols-3 ${isSupervisor ? "lg:grid-cols-5" : "lg:grid-cols-4"}`}>
       <StatCard title="أرباح الطلبات" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
-      <StatCard title="أرباح الإشراف" value={supervisionTotal} color="text-cyan-400" suffix=" د.ع"/>
+      {isSupervisor ? <StatCard title="أرباح الإشراف" value={supervisionTotal} color="text-cyan-400" suffix=" د.ع"/> : (otherProfit !== 0 && <StatCard title="أرباح إضافية" value={otherProfit} color="text-cyan-400" suffix=" د.ع"/>)}
       <StatCard title="المجموع" value={total} color="text-green-400" suffix=" د.ع"/>
       <StatCard title="المسدد" value={paid} color="text-slate-300" suffix=" د.ع"/>
       <StatCard title="المتبقي" value={remaining} color="text-blue-400" suffix=" د.ع"/>
     </div>
     <OrdersTable orders={orders} loading={false} canEdit={false} isAdmin={false}/>
-    <SimpleTable title="عمولات الإشراف الجديدة" rows={supervisorCommissions.map(c => ({
+    {isSupervisor && <SimpleTable title="عمولات الإشراف الجديدة" rows={supervisorCommissions.map(c => ({
       id:c.id,title:"عمولة إشراف على طلب واصل",amount:c.amount,date:c.created_at,badge:"إشراف"
-    }))}/>
-    <SimpleTable title="سجل أرباح الإشراف اليدوية وأرباح الحملات" rows={[
+    }))}/>}
+    <SimpleTable title={isSupervisor ? "سجل أرباح الإشراف اليدوية وأرباح الحملات" : "الأرباح الإضافية والحملات" } rows={[
       ...campaigns.map(c=>({id:`c-${c.id}`,title:c.page_name || "حملة",amount:c.delegate_profit,date:c.created_at,badge:"حملة"})),
-      ...profits.filter(p=>!p.source_order_id).map(p=>({id:`p-${p.id}`,title:p.notes || "ربح يدوي",amount:p.amount,date:p.created_at,badge:"إشراف يدوي"}))
+      ...profits.filter(p=>!p.source_order_id).map(p=>({id:`p-${p.id}`,title:p.notes || "ربح يدوي",amount:p.amount,date:p.created_at,badge:isSupervisor ? "إشراف يدوي" : "ربح إضافي"}))
     ]}/>
     <SimpleTable title="التسديدات" rows={settlements.map(s=>({
       id:s.id,title:s.notes || "تسديد",amount:s.amount,date:s.created_at,badge:"تسديد"
