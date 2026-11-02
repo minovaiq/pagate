@@ -18,11 +18,13 @@ export default defineConfig({
       ],
 
       devOptions: {
-        enabled: true,
+        enabled: false,
       },
-workbox: {
-  importScripts: ["/push-handler.js"],
-},
+      workbox: {
+        importScripts: ["/push-handler.js"],
+        cleanupOutdatedCaches: true,
+        navigateFallback: "/index.html",
+      },
       manifest: {
         name: "Finance OS",
         short_name: "FinanceOS",
