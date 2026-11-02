@@ -19,6 +19,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin, ini
   const [profitRules, setProfitRules] = useState([]);
 
   const [linkedDelegate, setLinkedDelegate] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
   const [delegateCampaigns, setDelegateCampaigns] = useState([]);
   const [delegateProfits, setDelegateProfits] = useState([]);
   const [delegateSettlements, setDelegateSettlements] = useState([]);
@@ -61,6 +62,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin, ini
         data: { user },
       } = await supabase.auth.getUser();
 
+      setCurrentUserId(user?.id || null);
       if (!user) {
         setOrders([]);
         setLinkedDelegate(null);
@@ -291,7 +293,7 @@ function urlBase64ToUint8Array(base64String) {
     );
   }, [orders, searchPhone, statusFilter, delegateFilter]);
 
-  const myPersonalOrders = useMemo(() => orders.filter(o => linkedDelegate && (String(o.delegate_id) === String(linkedDelegate.id) || (!o.delegate_id && o.user_id === linkedDelegate.linked_user_id))), [orders, linkedDelegate]);
+  const myPersonalOrders = useMemo(() => orders.filter(o => linkedDelegate ? (String(o.delegate_id) === String(linkedDelegate.id) || (!o.delegate_id && o.user_id === linkedDelegate.linked_user_id)) : (currentUserId && o.user_id === currentUserId)), [orders, linkedDelegate, currentUserId]);
   const myDeliveredOrders = useMemo(() => myPersonalOrders.filter(o => o.status === "delivered"), [myPersonalOrders]);
   const supervisorProfit = supervisorCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const personalOrderProfit = myDeliveredOrders.reduce((sum, row) => sum + Number(row.profit_amount || 0), 0);
