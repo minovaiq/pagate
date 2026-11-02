@@ -281,7 +281,7 @@ function urlBase64ToUint8Array(base64String) {
   const searchedOrders = useMemo(() => {
     const search = normalizePhone(searchPhone);
     return orders.filter((item) =>
-      (!search || normalizePhone(item.phone).includes(search)) &&
+      (!search || normalizePhone(item.phone).includes(search) || String(item.customer_name || "").toLowerCase().includes(searchPhone.trim().toLowerCase())) &&
       (statusFilter === "all" || item.status === statusFilter) &&
       (delegateFilter === "all" || String(item.delegate_id || "") === delegateFilter)
     );
@@ -355,21 +355,25 @@ function urlBase64ToUint8Array(base64String) {
       </div>}
 
       {activeTab === "dashboard" && <>
-        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-950 p-2">
+        <div className="rounded-xl border border-slate-800 bg-slate-950 p-2 space-y-2">
+          <div className="flex gap-1.5 overflow-x-auto whitespace-nowrap pb-1" style={{scrollbarWidth:"none"}}>
           {([["all","الكل"],...Object.entries(STATUS_LABELS).map(([k,v])=>[k,v])]).map(([key,label]) =>
             <button key={key} onClick={() => setStatusFilter(key)}
-              className={`h-9 rounded-md px-3 text-[11px] font-bold ${statusFilter === key ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>
+              className={`shrink-0 h-9 rounded-full px-3 text-[11px] font-bold ${statusFilter === key ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>
               {label} ({key === "all" ? orders.length : statusCounts[key] || 0})
             </button>
           )}
+          </div>
+          <div className="flex items-center gap-2">
           <select aria-label="فلتر المندوبة" value={delegateFilter} onChange={e => setDelegateFilter(e.target.value)}
             className="h-9 max-w-[190px] rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white">
             <option value="all">كل المندوبات</option>
             {[...new Map(orders.filter(o => o.delegate_id).map(o => [String(o.delegate_id),o.delegate_display_name])).entries()].map(([id,name]) =>
               <option key={id} value={id}>{name || "مندوبة"}</option>)}
           </select>
-          <input type="search" placeholder="بحث برقم الهاتف..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)}
+          <input type="search" placeholder="بحث بالهاتف أو اسم الزبون..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)}
             className="h-9 min-w-0 basis-full sm:basis-auto flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white outline-none"/>
+          </div>
           {(searchPhone || statusFilter !== "all" || delegateFilter !== "all") &&
             <button onClick={() => {setSearchPhone("");setStatusFilter("all");setDelegateFilter("all");}}
               className="h-8 rounded-md bg-slate-800 px-2 text-[10px] text-white">مسح الفلاتر</button>}
@@ -789,30 +793,30 @@ function OrdersTable({
   return (
     <>
       <div className="md:hidden space-y-2">
-        {orders.map(order => <article key={order.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-3 space-y-2 shadow-sm">
+        {orders.map((order,index) => <article key={order.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-3 shadow-sm">
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-white truncate">{order.customer_name || "زبون"}</div>
-              <div className="text-[11px] text-cyan-300 mt-1">{order.delegate_display_name || "مندوب غير محدد"}</div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-center gap-2"><span className="font-black text-sm text-white truncate">{order.customer_name || "زبون"}</span><span className="text-[10px] text-slate-400">#{orders.length-index}</span></div>
+              <div className="text-[11px] text-slate-500 truncate">المندوبة: <span className="text-blue-300 font-bold">{order.delegate_display_name || "-"}</span></div>
+              <a href={order.phone ? `tel:${order.phone}` : undefined} className="block text-[12px] font-bold text-blue-300" dir="ltr">{order.phone || "بدون رقم"}</a>
             </div>
-            <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold ${statusColors[order.status] || "bg-slate-800 text-white"}`}>{STATUS_LABELS[order.status] || order.status}</span>
+            <div className={`min-w-[76px] rounded-xl px-2 py-3 text-center font-black text-[12px] ${statusColors[order.status] || "bg-slate-800 text-white"}`}>
+              <div className="text-lg leading-5" aria-hidden="true">{order.status==="delivered"?"✓":order.status==="returned"?"↶":order.status==="cancelled"?"×":order.status==="processing"?"◷":"▣"}</div>
+              {STATUS_LABELS[order.status] || order.status}
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-900/70 p-2 text-xs">
-            <div><span className="block text-slate-500 text-[10px]">المنتج</span><span className="text-slate-200 break-words">{order.product_name || "-"}</span></div>
-            <div><span className="block text-slate-500 text-[10px]">السعر</span><span className="text-white font-bold">{Number(order.order_price || 0).toLocaleString()} د.ع</span></div>
-            <div><span className="block text-slate-500 text-[10px]">ربح الطلب</span><span className="text-emerald-400 font-bold">{Number(order.profit_amount || 0).toLocaleString()} د.ع</span></div>
-            <div><span className="block text-slate-500 text-[10px]">التاريخ</span><span className="text-slate-200">{order.created_at ? new Date(order.created_at).toLocaleDateString("ar-IQ") : "-"}</span></div>
+          <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-800 pt-2 text-xs">
+            <div className="min-w-0"><div className="text-[10px] text-slate-500">المنتج</div><div className="font-bold text-white break-words">{order.product_name || "-"}</div></div>
+            <div className="text-left"><div className="text-[10px] text-slate-500">السعر</div><div className="font-black text-blue-300">{Number(order.order_price || 0).toLocaleString()} د.ع</div></div>
+            <div><div className="text-[10px] text-slate-500">الربح</div><div className="font-black text-emerald-400">{Number(order.profit_amount || 0).toLocaleString()} د.ع</div></div>
+            <div className="text-left"><div className="text-[10px] text-slate-500">التاريخ</div><div className="text-slate-400">{order.created_at ? new Date(order.created_at).toLocaleDateString("en-GB") : "-"}</div></div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <a href={`tel:${order.phone || ""}`} className="flex-1 min-w-0 rounded-lg bg-slate-900 px-3 py-2 text-xs text-blue-300 text-center font-bold" dir="ltr">{order.phone || "بدون هاتف"}</a>
-            {canEdit && <button type="button" onClick={()=>onEdit?.(order)} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white">تعديل</button>}
-            {isAdmin && <button type="button" onClick={()=>onDelete?.(order.id)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">حذف</button>}
+          <div className="flex gap-2 mt-2 items-center">
+            {order.phone && <a href={`tel:${order.phone}`} aria-label="اتصال" className="h-9 px-4 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">☎</a>}
+            {canEdit && <button type="button" onClick={()=>onEdit?.(order)} className="h-9 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white">✎ تعديل</button>}
+            {canEdit && <select aria-label="تغيير الحالة" value={order.status} onChange={e=>onStatusChange?.(order.id,e.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs text-white">{Object.entries(STATUS_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>}
+            {isAdmin && <button type="button" onClick={()=>onDelete?.(order.id)} className="h-9 rounded-lg bg-rose-700 px-3 text-xs font-bold text-white">حذف</button>}
           </div>
-          {canEdit && <label className="flex items-center justify-between gap-2 text-xs text-slate-400">تغيير الحالة
-            <select value={order.status} onChange={e=>onStatusChange?.(order.id,e.target.value)} className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs text-white">
-              {Object.entries(STATUS_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}
-            </select>
-          </label>}
         </article>)}
       </div>
       <div className="hidden md:block bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
