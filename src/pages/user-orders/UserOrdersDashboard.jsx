@@ -1,3 +1,4 @@
+import { Phone, Pencil, Truck, RotateCcw, XCircle, Clock3, PackageCheck, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../services/supabase/client";
 const VAPID_PUBLIC_KEY = "BLVPuUCGQjnt4qSg_-A4EDOXHRXrPVzF4R437awrwi-37G3g4z8Czo6HYeFPrcnrT4rcJhrqBPUFsTroPFEvyII";
@@ -789,7 +790,8 @@ function OrdersTable({
   if (loading) return <EmptyState text="جاري تحميل الطلبات..." />;
   if (!orders.length) return <EmptyState text="لا توجد طلبات حالياً" />;
 
-  const statusColors = {delivered:"bg-emerald-500/15 text-emerald-400",returned:"bg-rose-500/15 text-rose-400",cancelled:"bg-slate-700 text-slate-300",pending:"bg-blue-500/15 text-blue-400",processing:"bg-amber-500/15 text-amber-400"};
+  const statusColors = {delivered:"bg-emerald-500/15 text-emerald-700",returned:"bg-rose-500/15 text-rose-700",cancelled:"bg-slate-200 text-slate-600",pending:"bg-blue-500/15 text-blue-700",processing:"bg-amber-500/15 text-amber-700"};
+  const statusIcons = {delivered:Truck,returned:RotateCcw,cancelled:XCircle,pending:PackageCheck,processing:Clock3};
   return (
     <>
       <div className="md:hidden space-y-2">
@@ -801,7 +803,7 @@ function OrdersTable({
               <a href={order.phone ? `tel:${order.phone}` : undefined} className="block text-[12px] font-bold text-blue-300" dir="ltr">{order.phone || "بدون رقم"}</a>
             </div>
             <div className={`min-w-[76px] rounded-xl px-2 py-3 text-center font-black text-[12px] ${statusColors[order.status] || "bg-slate-800 text-white"}`}>
-              <div className="text-lg leading-5" aria-hidden="true">{order.status==="delivered"?"✓":order.status==="returned"?"↶":order.status==="cancelled"?"×":order.status==="processing"?"◷":"▣"}</div>
+              <div className="flex justify-center mb-1" aria-hidden="true">{(() => { const Icon = statusIcons[order.status] || PackageCheck; return <Icon size={20} strokeWidth={2} />; })()}</div>
               {STATUS_LABELS[order.status] || order.status}
             </div>
           </div>
@@ -812,10 +814,10 @@ function OrdersTable({
             <div className="text-left"><div className="text-[10px] text-slate-500">التاريخ</div><div className="text-slate-400">{order.created_at ? new Date(order.created_at).toLocaleDateString("en-GB") : "-"}</div></div>
           </div>
           <div className="flex gap-2 mt-2 items-center">
-            {order.phone && <a href={`tel:${order.phone}`} aria-label="اتصال" className="h-9 px-4 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">☎</a>}
-            {canEdit && <button type="button" onClick={()=>onEdit?.(order)} className="h-9 rounded-lg bg-blue-600 px-4 text-xs font-bold text-white">✎ تعديل</button>}
+            {order.phone && <a href={`tel:${order.phone}`} aria-label="اتصال" className="h-9 w-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold"><Phone size={17} strokeWidth={2}/></a>}
+            {canEdit && <button type="button" onClick={()=>onEdit?.(order)} className="h-9 rounded-lg bg-blue-600 px-3 text-xs font-bold text-white inline-flex items-center gap-1.5"><Pencil size={15} strokeWidth={2}/> تعديل</button>}
             {canEdit && <select aria-label="تغيير الحالة" value={order.status} onChange={e=>onStatusChange?.(order.id,e.target.value)} className="h-9 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-2 text-xs text-white">{Object.entries(STATUS_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select>}
-            {isAdmin && <button type="button" onClick={()=>onDelete?.(order.id)} className="h-9 rounded-lg bg-rose-700 px-3 text-xs font-bold text-white">حذف</button>}
+            {isAdmin && <button type="button" onClick={()=>onDelete?.(order.id)} className="h-9 rounded-lg bg-rose-700 px-3 text-xs font-bold text-white inline-flex items-center gap-1"><Trash2 size={15}/> حذف</button>}
           </div>
         </article>)}
       </div>
