@@ -361,14 +361,14 @@ function urlBase64ToUint8Array(base64String) {
       {!embedded && <nav aria-label="التنقل الرئيسي" className="pagate-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-around gap-1 max-w-lg mx-auto">
           {[
-            ["dashboard",House,"الرئيسية"],
+            ["home",House,"الرئيسية"],
             ["dashboard",ClipboardList,"الطلبات"],
             canAdd && ["add",Plus,"إضافة"],
             ["wallet",Wallet,"المحفظة"],
             ["more",Settings2,"المزيد"],
           ].filter(Boolean).map(([key,Icon,label],index)=><button key={index} type="button"
             onClick={()=>key==="more"?setShowMobileMore(v=>!v):(setActiveTab(key),setShowMobileMore(false))}
-            className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold ${(activeTab===key && (key!=="dashboard" || index===1)) || (key==="more" && showMobileMore)?"bg-blue-600 text-white":"text-slate-400"}`}>
+            className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold ${activeTab===key || (key==="more" && showMobileMore)?"bg-blue-600 text-white":"text-slate-400"}`}>
             <Icon size={20} strokeWidth={2}/><span>{label}</span>
           </button>)}
         </div>
@@ -376,6 +376,24 @@ function urlBase64ToUint8Array(base64String) {
       {!embedded && showMobileMore && <div className="md:hidden fixed bottom-[76px] inset-x-3 z-40 rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-xl">
         <button className="w-full rounded-xl bg-slate-900 p-3 text-right text-sm font-bold" onClick={()=>{setShowMobileMore(false);loadAll()}}><RefreshCw size={16} className="inline ml-2"/>تحديث البيانات</button>
         {isAdmin && <button className="w-full rounded-xl bg-slate-900 p-3 mt-2 text-right text-sm font-bold" onClick={()=>{setActiveTab("profit-rules");setShowMobileMore(false)}}><Settings2 size={16} className="inline ml-2"/>إعدادات الأرباح</button>}
+      </div>}
+      {!embedded && activeTab === "home" && <div className="space-y-3">
+        <div className="rounded-2xl bg-blue-600 p-4 text-white">
+          <div className="text-lg font-black">نظام المندوبات</div>
+          <div className="text-xs opacity-90 mt-1">ملخص الطلبات والأرباح</div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            ["إجمالي الطلبات",stats.totalOrders,"text-blue-600"],
+            ["الواصل",stats.delivered,"text-emerald-600"],
+            ["الراجع",stats.returned,"text-rose-600"],
+            ["أرباح الطلبات",stats.totalProfit,"text-blue-600"],
+          ].map(([label,value,color])=><div key={label} className="rounded-2xl border border-slate-800 bg-slate-950 p-3">
+            <div className="text-xs text-slate-400">{label}</div>
+            <div className={`text-lg font-black mt-1 ${color}`}>{Number(value).toLocaleString("en-US")}</div>
+          </div>)}
+        </div>
+        <button type="button" onClick={()=>setActiveTab("dashboard")} className="w-full rounded-xl bg-blue-600 p-3 text-sm font-bold text-white">عرض جميع الطلبات</button>
       </div>}
       {activeTab === "dashboard" && <>
         <div className="rounded-xl border border-slate-800 bg-slate-950 p-2 space-y-2">
