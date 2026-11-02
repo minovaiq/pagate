@@ -369,7 +369,7 @@ function urlBase64ToUint8Array(base64String) {
               <option key={id} value={id}>{name || "مندوبة"}</option>)}
           </select>
           <input type="search" placeholder="بحث برقم الهاتف..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)}
-            className="h-9 min-w-[190px] flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white outline-none"/>
+            className="h-9 min-w-0 basis-full sm:basis-auto flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white outline-none"/>
           {(searchPhone || statusFilter !== "all" || delegateFilter !== "all") &&
             <button onClick={() => {setSearchPhone("");setStatusFilter("all");setDelegateFilter("all");}}
               className="h-8 rounded-md bg-slate-800 px-2 text-[10px] text-white">مسح الفلاتر</button>}
@@ -424,7 +424,7 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
     <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs font-bold text-white">
       محفظتي — {linkedDelegate?.full_name || linkedDelegate?.name || "حسابي"}
     </div>
-    <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       <StatCard title="أرباح الطلبات" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
       <StatCard title="أرباح الإشراف" value={supervisionTotal} color="text-cyan-400" suffix=" د.ع"/>
       <StatCard title="المجموع" value={total} color="text-green-400" suffix=" د.ع"/>
@@ -785,8 +785,37 @@ function OrdersTable({
   if (loading) return <EmptyState text="جاري تحميل الطلبات..." />;
   if (!orders.length) return <EmptyState text="لا توجد طلبات حالياً" />;
 
+  const statusColors = {delivered:"bg-emerald-500/15 text-emerald-400",returned:"bg-rose-500/15 text-rose-400",cancelled:"bg-slate-700 text-slate-300",pending:"bg-blue-500/15 text-blue-400",processing:"bg-amber-500/15 text-amber-400"};
   return (
-    <div className="bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
+    <>
+      <div className="md:hidden space-y-2">
+        {orders.map(order => <article key={order.id} className="rounded-2xl border border-slate-800 bg-slate-950 p-3 space-y-2 shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-white truncate">{order.customer_name || "زبون"}</div>
+              <div className="text-[11px] text-cyan-300 mt-1">{order.delegate_display_name || "مندوب غير محدد"}</div>
+            </div>
+            <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold ${statusColors[order.status] || "bg-slate-800 text-white"}`}>{STATUS_LABELS[order.status] || order.status}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-slate-900/70 p-2 text-xs">
+            <div><span className="block text-slate-500 text-[10px]">المنتج</span><span className="text-slate-200 break-words">{order.product_name || "-"}</span></div>
+            <div><span className="block text-slate-500 text-[10px]">السعر</span><span className="text-white font-bold">{Number(order.order_price || 0).toLocaleString()} د.ع</span></div>
+            <div><span className="block text-slate-500 text-[10px]">ربح الطلب</span><span className="text-emerald-400 font-bold">{Number(order.profit_amount || 0).toLocaleString()} د.ع</span></div>
+            <div><span className="block text-slate-500 text-[10px]">التاريخ</span><span className="text-slate-200">{order.created_at ? new Date(order.created_at).toLocaleDateString("ar-IQ") : "-"}</span></div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <a href={`tel:${order.phone || ""}`} className="flex-1 min-w-0 rounded-lg bg-slate-900 px-3 py-2 text-xs text-blue-300 text-center font-bold" dir="ltr">{order.phone || "بدون هاتف"}</a>
+            {canEdit && <button type="button" onClick={()=>onEdit?.(order)} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white">تعديل</button>}
+            {isAdmin && <button type="button" onClick={()=>onDelete?.(order.id)} className="rounded-lg bg-rose-700 px-3 py-2 text-xs font-bold text-white">حذف</button>}
+          </div>
+          {canEdit && <label className="flex items-center justify-between gap-2 text-xs text-slate-400">تغيير الحالة
+            <select value={order.status} onChange={e=>onStatusChange?.(order.id,e.target.value)} className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-xs text-white">
+              {Object.entries(STATUS_LABELS).map(([key,label])=><option key={key} value={key}>{label}</option>)}
+            </select>
+          </label>}
+        </article>)}
+      </div>
+      <div className="hidden md:block bg-slate-950 border border-slate-800 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-[10px]">
           <thead className="bg-slate-900 text-slate-400">
@@ -852,7 +881,8 @@ function OrdersTable({
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 
