@@ -16,6 +16,7 @@ import UserOrdersDashboard from "../user-orders/UserOrdersDashboard";
 
 export default function MyPagesDashboard({ project, permissions, isAdmin }) {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showMobileMore, setShowMobileMore] = useState(false);
 
   const [stats, setStats] = useState({
     received: 0,
@@ -175,8 +176,8 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
   }
 
   return (
-    <div className="space-y-2">
-      <div className="bg-slate-950 border border-slate-800 rounded-lg p-1 overflow-x-auto">
+    <div className="space-y-3 pb-20 md:pb-2" dir="rtl">
+      <div className="rounded-2xl border border-slate-800 bg-slate-950 p-2 overflow-x-auto hidden md:block">
         <div className="flex gap-1 min-w-max">
           {canPagesDashboard && (
             <TabButton label="الرئيسية" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} color="bg-blue-600" />
@@ -235,6 +236,34 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
         </div>
       </div>
 
+      <nav aria-label="التنقل الرئيسي" className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
+        <div className="flex items-center justify-around gap-1 max-w-lg mx-auto">
+          {[
+            canPagesDashboard && ["dashboard","⌂","الرئيسية"],
+            canUserOrders && ["user_orders","▤","الطلبات"],
+            canAddUserOrder && ["add_user_order","+","إضافة"],
+            canWallet && ["wallet","◈","محفظتي"],
+            ["more","☷","المزيد"],
+          ].filter(Boolean).map(([key,icon,label]) => (
+            <button key={key} type="button" onClick={() => key === "more" ? setShowMobileMore(v=>!v) : (setActiveTab(key),setShowMobileMore(false))}
+              aria-current={activeTab === key ? "page" : undefined}
+              className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold ${activeTab === key || (key === "more" && showMobileMore) ? "bg-blue-600 text-white" : "text-slate-400"}`}>
+              <span aria-hidden="true" className="text-xl leading-5">{icon}</span><span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
+      {showMobileMore && <div className="md:hidden fixed inset-x-3 bottom-[76px] z-40 max-h-[65vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-950 p-3 shadow-2xl">
+        <div className="flex items-center justify-between mb-2"><strong className="text-sm">الأقسام الأخرى</strong><button onClick={()=>setShowMobileMore(false)} className="px-3 py-1 text-slate-300">إغلاق ×</button></div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            canCampaigns && ["campaigns","الحملات"],canDelegates && ["delegates","المندوبين"],
+            canDelegateProfits && ["delegate_profits","أرباح المندوب"],canUserProfits && ["user_profits","أرباح الطلبات"],
+            canBalance && ["balance","الرصيد"],canOrderBot && ["order_bot","بوت الطلبات"],
+            canPromotionTargeting && ["promotion_targeting","استهداف الترويج"],canReports && ["reports","التقارير"],
+          ].filter(Boolean).map(([key,label])=><button key={key} onClick={()=>{setActiveTab(key);setShowMobileMore(false)}} className={`rounded-xl border border-slate-800 p-3 text-xs font-bold text-right ${activeTab===key?"bg-blue-600 text-white":"bg-slate-900 text-slate-200"}`}>{label}</button>)}
+        </div>
+      </div>}
       {activeTab === "dashboard" && canPagesDashboard && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
           <StatCard title="الواصل" value={stats.received} color="text-green-400" />
