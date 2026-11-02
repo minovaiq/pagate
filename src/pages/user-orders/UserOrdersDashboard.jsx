@@ -132,14 +132,29 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin, ini
         .maybeSingle();
       if (delegateError) throw delegateError;
 
-      setLinkedDelegate(delegateData || null);
-      if (access?.can_manage_all_orders && delegateData?.id) {
-        const { data: commissionRows, error: commissionError } = await supabase.from("supervisor_order_commissions").select("id,amount,source_order_id,created_at").eq("supervisor_delegate_id", delegateData.id);
+      // The delegate system and My Pages share delegate identities and financial records.
+      // For an ordinary delegate, resolve the same authenticated user's linked record
+      // from My Pages when the user_orders project has no duplicate delegate row.
+      let financialDelegate = delegateData || null;
+      if (!financialDelegate && project.type === "user_orders") {
+        const { data: legacyDelegate, error: legacyError } = await supabase
+          .from("delegates")
+          .select("*")
+          .eq("linked_user_id", user.id)
+          .eq("project_id", "cab64e81-998a-4f79-9e35-05afa9ac9d33")
+          .maybeSingle();
+        if (legacyError) throw legacyError;
+        financialDelegate = legacyDelegate || null;
+      }
+
+      setLinkedDelegate(financialDelegate);
+      if (access?.can_manage_all_orders && financialDelegate?.id) {
+        const { data: commissionRows, error: commissionError } = await supabase.from("supervisor_order_commissions").select("id,amount,source_order_id,created_at").eq("supervisor_delegate_id", financialDelegate.id);
         if (commissionError) console.error("Supervisor commissions:", commissionError);
         setSupervisorCommissions(commissionRows || []);
       } else setSupervisorCommissions([]);
 
-      if (!delegateData) {
+      if (!financialDelegate) {
         setDelegateCampaigns([]);
         setDelegateProfits([]);
         setDelegateSettlements([]);
@@ -149,7 +164,7 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin, ini
       const { data: campaignsData } = await supabase
         .from("page_campaigns")
         .select("*")
-        .eq("delegate_id", delegateData.id)
+        .eq("delegate_id", financialDelegate.id)
         .order("created_at", { ascending: false });
 
       const { data: profitsData } = await supabase
