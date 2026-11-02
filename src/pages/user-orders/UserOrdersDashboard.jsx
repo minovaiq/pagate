@@ -424,7 +424,7 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
     <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs font-bold text-white">
       محفظتي — {linkedDelegate?.full_name || linkedDelegate?.name || "حسابي"}
     </div>
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="wallet-summary grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
       <StatCard title="أرباح الطلبات" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
       <StatCard title="أرباح الإشراف" value={supervisionTotal} color="text-cyan-400" suffix=" د.ع"/>
       <StatCard title="المجموع" value={total} color="text-green-400" suffix=" د.ع"/>
