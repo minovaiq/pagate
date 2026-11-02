@@ -1,3 +1,4 @@
+import "./pagate-mobile.css";
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabase/client";
 
@@ -236,7 +237,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
         </div>
       </div>
 
-      <nav aria-label="التنقل الرئيسي" className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
+      <nav aria-label="التنقل الرئيسي" className="pagate-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
         <div className="flex items-center justify-around gap-1 max-w-lg mx-auto">
           {[
             canPagesDashboard && ["dashboard","⌂","الرئيسية"],
@@ -265,7 +266,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
         </div>
       </div>}
       {activeTab === "dashboard" && canPagesDashboard && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+        <div className="pagate-home-stats grid grid-cols-2 md:grid-cols-4 gap-2">
           <StatCard title="الواصل" value={stats.received} color="text-green-400" />
           <StatCard title="مصروف الترويج" value={stats.promotionSpent} color="text-purple-400" />
           <StatCard title="مسدد للمندوبين" value={stats.delegatePaid} color="text-red-400" />
