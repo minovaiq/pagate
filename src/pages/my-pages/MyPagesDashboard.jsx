@@ -257,7 +257,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
       )}
 
       {activeTab === "user_orders" && canUserOrders && (
-        <MyOrders project={project} permissions={permissions} isAdmin={isAdmin} />
+        <UserOrdersDashboard project={project} permissions={permissions} isAdmin={isAdmin} initialTab="dashboard" embedded />
       )}
 
       {activeTab === "add_user_order" && canAddUserOrder && (
@@ -269,7 +269,7 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
       )}
 
       {activeTab === "wallet" && canWallet && (
-        <UserOrdersDashboard project={project} permissions={permissions} isAdmin={isAdmin} />
+        <UserOrdersDashboard project={project} permissions={permissions} isAdmin={isAdmin} initialTab="wallet" embedded />
       )}
 
       {activeTab === "balance" && canBalance && (
