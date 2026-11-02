@@ -9,8 +9,8 @@ const STATUS_LABELS = {
   cancelled: "ملغي",
 };
 
-export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
-  const [activeTab, setActiveTab] = useState("dashboard");
+export default function UserOrdersDashboard({ project, permissions, isAdmin, initialTab = "dashboard", embedded = false }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [orders, setOrders] = useState([]);
   const [profitRules, setProfitRules] = useState([]);
 
@@ -346,13 +346,13 @@ function urlBase64ToUint8Array(base64String) {
 
   return (
     <div className="space-y-2" dir="rtl">
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+      {!embedded && <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
         <TabButton label="طلبات المندوبين" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} color="bg-blue-600" />
         <TabButton label="محفظتي" active={activeTab === "wallet"} onClick={() => setActiveTab("wallet")} color="bg-cyan-600" />
         {canAdd && <TabButton label="إضافة طلب" active={activeTab === "add"} onClick={() => setActiveTab("add")} color="bg-purple-600" />}
         {isAdmin && <TabButton label="إعدادات الأرباح" active={activeTab === "profit-rules"} onClick={() => setActiveTab("profit-rules")} color="bg-orange-600" />}
         <button onClick={loadAll} className="mr-auto bg-slate-800 text-white px-3 h-8 rounded-md text-[10px] font-bold">تحديث</button>
-      </div>
+      </div>}
 
       {activeTab === "dashboard" && <>
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
