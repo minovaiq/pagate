@@ -423,7 +423,7 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
     <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
       <StatCard title="أرباح طلباتي" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
       <StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع"/>
-      <StatCard title="الأرباح الإضافية المسجلة" value={manualProfit} color="text-violet-400" suffix=" د.ع"/>
+      <StatCard title="أرباح الإشراف اليدوية السابقة" value={manualProfit} color="text-violet-400" suffix=" د.ع"/>
       <StatCard title="أرباح الحملات" value={campaignProfit} color="text-amber-400" suffix=" د.ع"/>
       <StatCard title="إجمالي أرباحي" value={total} color="text-green-400" suffix=" د.ع"/>
       <StatCard title="المتبقي بعد التسديد" value={total-paid} color="text-blue-400" suffix=" د.ع"/>
@@ -432,15 +432,15 @@ function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settle
       <StatCard title="طلباتي" value={orders.length} color="text-white"/>
       <StatCard title="طلباتي الواصلة" value={delivered.length} color="text-emerald-400"/>
       <StatCard title="المسدد" value={paid} color="text-slate-300" suffix=" د.ع"/>
-      <StatCard title="عدد عمليات الأرباح الإضافية" value={profits.filter(p=>!p.source_order_id).length} color="text-violet-300"/>
+      <StatCard title="عدد قيود الإشراف اليدوية" value={profits.filter(p=>!p.source_order_id).length} color="text-violet-300"/>
     </div>
     <OrdersTable orders={orders} loading={false} canEdit={false} isAdmin={false}/>
     <SimpleTable title="عمولات الإشراف الجديدة" rows={supervisorCommissions.map(c => ({
       id:c.id,title:"عمولة إشراف على طلب واصل",amount:c.amount,date:c.created_at,badge:"إشراف"
     }))}/>
-    <SimpleTable title="تفاصيل أرباح الحملات والأرباح الإضافية" rows={[
+    <SimpleTable title="سجل أرباح الإشراف اليدوية وأرباح الحملات" rows={[
       ...campaigns.map(c=>({id:`c-${c.id}`,title:c.page_name || "حملة",amount:c.delegate_profit,date:c.created_at,badge:"حملة"})),
-      ...profits.filter(p=>!p.source_order_id).map(p=>({id:`p-${p.id}`,title:p.notes || "ربح يدوي",amount:p.amount,date:p.created_at,badge:"ربح"}))
+      ...profits.filter(p=>!p.source_order_id).map(p=>({id:`p-${p.id}`,title:p.notes || "ربح يدوي",amount:p.amount,date:p.created_at,badge:"إشراف يدوي"}))
     ]}/>
     <SimpleTable title="التسديدات" rows={settlements.map(s=>({
       id:s.id,title:s.notes || "تسديد",amount:s.amount,date:s.created_at,badge:"تسديد"
