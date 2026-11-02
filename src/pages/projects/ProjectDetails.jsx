@@ -138,7 +138,7 @@ export default function ProjectDetails() {
     }
   }
 
-  const theme = darkMode
+  const theme = (project?.type === "my_pages" ? false : darkMode)
     ? {
         page: "bg-[#050816] text-white",
         header: "bg-[#0f172a] border-slate-800",
@@ -199,7 +199,7 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div dir="rtl" className={`min-h-screen p-1.5 sm:p-2 ${theme.page}`}>
+    <div dir="rtl" className={`min-h-screen p-1.5 sm:p-2 ${theme.page} ${project.type === "my_pages" ? "pagate-light" : ""}`}>
       <div className="max-w-[1600px] mx-auto space-y-1.5">
 
         {/* Compact app header */}
@@ -212,7 +212,7 @@ export default function ProjectDetails() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>{darkMode ? "☀" : "☾"}</button>
+            {project.type !== "my_pages" && <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>{darkMode ? "☀" : "☾"}</button>}
             <button type="button" onClick={loadProjectAndPermissions} title="تحديث" aria-label="تحديث" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}>↻</button>
             {isAdmin && <button type="button" onClick={() => navigate("/projects")} title="المشاريع" aria-label="المشاريع" className="h-8 w-8 rounded-lg bg-blue-600 text-white text-base flex items-center justify-center">▦</button>}
             <button type="button" onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="h-8 w-8 rounded-lg bg-rose-700 text-white text-sm flex items-center justify-center">⏻</button>
