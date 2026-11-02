@@ -409,18 +409,19 @@ function urlBase64ToUint8Array(base64String) {
           <div aria-hidden="true" className="absolute -top-16 -left-12 h-48 w-48 rounded-full border-[24px] border-white/10"/>
           <div aria-hidden="true" className="absolute -bottom-24 right-16 h-44 w-44 rounded-full bg-white/10 blur-xl"/>
           <div className="relative flex items-start justify-between">
-            <div><div className="text-xs font-semibold text-blue-100">محفظة المندوبة</div><div className="mt-1 text-sm font-black">الرصيد المتبقي</div></div>
+            <div><div className="text-xs font-semibold text-blue-100">{linkedDelegate?.full_name || linkedDelegate?.name || "محفظتي"}</div><div className="mt-1 text-sm font-black">الرصيد المتبقي</div></div>
             <Wallet size={26} strokeWidth={1.8} className="text-white/90"/>
           </div>
           <div className="relative mt-4 flex items-baseline gap-2" dir="ltr">
-            <span className="text-3xl font-black tracking-tight tabular-nums">{homeBalance.remaining.toLocaleString("en-US")}</span>
-            <span className="text-sm font-bold text-blue-100">د.ع</span>
+            <span className="text-4xl font-black tracking-tight tabular-nums !text-white">{homeBalance.remaining.toLocaleString("en-US")}</span>
+            <span className="text-sm font-bold !text-white">د.ع</span>
           </div>
           <div className="relative mt-4 flex justify-between border-t border-white/25 pt-3 text-xs">
             <div><span className="block text-blue-100">إجمالي الأرباح</span><strong className="text-sm tabular-nums">{homeBalance.total.toLocaleString("en-US")}</strong></div>
             <div className="text-left"><span className="block text-blue-100">المسدد</span><strong className="text-sm tabular-nums">{homeBalance.paid.toLocaleString("en-US")}</strong></div>
           </div>
         </div>
+        <button type="button" onClick={()=>setActiveTab("wallet")} className="relative rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold !text-white">عرض المحفظة</button>
         <div className="grid grid-cols-2 gap-2">
           {[
             ["إجمالي الطلبات",stats.totalOrders,"text-blue-600"],
@@ -432,7 +433,13 @@ function urlBase64ToUint8Array(base64String) {
             <div className={`text-lg font-black mt-1 ${color}`}>{Number(value).toLocaleString("en-US")}</div>
           </div>)}
         </div>
-        <button type="button" onClick={()=>setActiveTab("dashboard")} className="w-full rounded-xl bg-blue-600 p-3 text-sm font-bold text-white">عرض جميع الطلبات</button>
+        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-3 space-y-2">
+          <div className="flex items-center justify-between"><h2 className="text-sm font-black text-slate-900">آخر 5 طلبات</h2><button type="button" onClick={()=>setActiveTab("dashboard")} className="text-xs font-bold text-blue-600">عرض الكل</button></div>
+          {orders.length === 0 ? <div className="py-4 text-center text-xs text-slate-400">لا توجد طلبات</div> : orders.slice(0,5).map(order=><div key={order.id} className="flex items-center justify-between gap-2 border-t border-slate-800 py-2">
+            <div className="min-w-0 flex-1"><div className="truncate text-xs font-bold text-slate-900">{order.customer_name || "زبون"}</div><div className="truncate text-[11px] text-slate-500">{order.product_name || "-"} · {order.created_at ? new Date(order.created_at).toLocaleDateString("en-GB") : ""}</div></div>
+            <span className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold ${order.status==="delivered"?"bg-emerald-100 text-emerald-700":order.status==="returned"?"bg-rose-100 text-rose-700":order.status==="cancelled"?"bg-slate-100 text-slate-600":"bg-blue-100 text-blue-700"}`}>{STATUS_LABELS[order.status] || order.status}</span>
+          </div>)}
+        </div>
       </div>}
       {activeTab === "dashboard" && <>
         <div className="rounded-xl border border-slate-800 bg-slate-950 p-2 space-y-2">
