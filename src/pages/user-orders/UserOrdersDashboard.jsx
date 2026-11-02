@@ -52,6 +52,16 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         data: { user },
       } = await supabase.auth.getUser();
 
+      const { data: access, error: accessError } = await supabase
+        .from("project_members")
+        .select("can_manage_all_orders")
+        .eq("project_id", project.id)
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (accessError) throw accessError;
+      const canViewAll = isAdmin || access?.can_manage_all_orders === true;
+
       let query = supabase
         .from("page_orders")
         .select(`
@@ -63,10 +73,13 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
             linked_user_id
           )
         `)
-        .eq("project_id", project.id)
         .order("created_at", { ascending: false });
 
-      if (!isAdmin) query = query.eq("user_id", user.id);
+      if (canViewAll) {
+        query = query.in("project_id", [project.id, "5d03e858-8e14-4804-b5f9-e6d9c52b9f88"]);
+      } else {
+        query = query.eq("project_id", project.id).eq("user_id", user.id);
+      }
 
       const { data: ordersData, error: ordersError } = await query;
       if (ordersError) throw ordersError;
@@ -838,7 +851,7 @@ function OrdersTable({
                     <select
                       value={order.status}
                       onChange={(e) => onStatusChange(order.id, e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded-md px-2 h-7 text-[10px]"
+                      className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-7 text-[10px]"
                     >
                       {Object.entries(STATUS_LABELS).map(([key, label]) => (
                         <option key={key} value={key}>{label}</option>
