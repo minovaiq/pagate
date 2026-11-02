@@ -139,7 +139,7 @@ export default function ProjectDetails() {
     }
   }
 
-  const theme = (project?.type === "my_pages" ? false : darkMode)
+  const theme = (["my_pages","user_orders"].includes(project?.type) ? false : darkMode)
     ? {
         page: "bg-[#050816] text-white",
         header: "bg-[#0f172a] border-slate-800",
@@ -200,7 +200,7 @@ export default function ProjectDetails() {
   }
 
   return (
-    <div dir="rtl" className={`min-h-screen p-1.5 sm:p-2 ${theme.page} ${project.type === "my_pages" ? "pagate-light" : ""}`}>
+    <div dir="rtl" className={`min-h-screen p-1.5 sm:p-2 ${theme.page} ${["my_pages","user_orders"].includes(project.type) ? "pagate-light" : ""}`}>
       <div className="max-w-[1600px] mx-auto space-y-1.5">
 
         {/* Compact app header */}
@@ -213,7 +213,7 @@ export default function ProjectDetails() {
             </div>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            {project.type !== "my_pages" && <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg flex items-center justify-center`}>{darkMode ? <Sun size={17}/> : <Moon size={17}/>}</button>}
+            {!["my_pages","user_orders"].includes(project.type) && <button type="button" onClick={() => setDarkMode(v=>!v)} title={darkMode ? "الوضع الفاتح" : "الوضع الليلي"} aria-label="تغيير المظهر" className={`${theme.softBtn} h-8 w-8 rounded-lg flex items-center justify-center`}>{darkMode ? <Sun size={17}/> : <Moon size={17}/>}</button>}
             <button type="button" onClick={loadProjectAndPermissions} title="تحديث" aria-label="تحديث" className={`${theme.softBtn} h-8 w-8 rounded-lg text-base flex items-center justify-center`}><RefreshCw size={17}/></button>
             {isAdmin && <button type="button" onClick={() => navigate("/projects")} title="المشاريع" aria-label="المشاريع" className="h-8 w-8 rounded-lg bg-blue-600 text-white flex items-center justify-center"><PanelsTopLeft size={17}/></button>}
             <button type="button" onClick={logout} title="تسجيل الخروج" aria-label="تسجيل الخروج" className="h-8 w-8 rounded-lg bg-rose-700 text-white flex items-center justify-center"><LogOut size={17}/></button>
