@@ -1,3 +1,4 @@
+import { House, ClipboardList, Plus, Wallet, LayoutGrid } from "lucide-react";
 import "./pagate-mobile.css";
 import { useEffect, useState } from "react";
 import { supabase } from "../../services/supabase/client";
@@ -240,16 +241,16 @@ export default function MyPagesDashboard({ project, permissions, isAdmin }) {
       <nav aria-label="التنقل الرئيسي" className="pagate-bottom-nav md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-700 bg-slate-950/95 backdrop-blur-xl px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-2xl">
         <div className="flex items-center justify-around gap-1 max-w-lg mx-auto">
           {[
-            canPagesDashboard && ["dashboard","⌂","الرئيسية"],
-            canUserOrders && ["user_orders","▤","الطلبات"],
-            canAddUserOrder && ["add_user_order","+","إضافة"],
-            canWallet && ["wallet","◈","محفظتي"],
-            ["more","☷","المزيد"],
-          ].filter(Boolean).map(([key,icon,label]) => (
+            canPagesDashboard && ["dashboard",House,"الرئيسية"],
+            canUserOrders && ["user_orders",ClipboardList,"الطلبات"],
+            canAddUserOrder && ["add_user_order",Plus,"إضافة"],
+            canWallet && ["wallet",Wallet,"محفظتي"],
+            ["more",LayoutGrid,"المزيد"],
+          ].filter(Boolean).map(([key,Icon,label]) => (
             <button key={key} type="button" onClick={() => key === "more" ? setShowMobileMore(v=>!v) : (setActiveTab(key),setShowMobileMore(false))}
               aria-current={activeTab === key ? "page" : undefined}
               className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[11px] font-bold ${activeTab === key || (key === "more" && showMobileMore) ? "bg-blue-600 text-white" : "text-slate-400"}`}>
-              <span aria-hidden="true" className="text-xl leading-5">{icon}</span><span>{label}</span>
+              <Icon aria-hidden="true" size={20} strokeWidth={2} /><span>{label}</span>
             </button>
           ))}
         </div>
