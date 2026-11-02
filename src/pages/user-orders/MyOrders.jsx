@@ -95,17 +95,25 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
       const currentUserDelegate =
         delegateByUserId.get(String(user.id)) || null;
 
+      // Supervisors with the dedicated database permission can see the historical
+      // orders stored under the legacy project id, as well as current orders.
+      const { data: supervisorAccess, error: supervisorAccessError } = await supabase
+        .from("project_members")
+        .select("can_manage_all_orders")
+        .eq("project_id", project.id)
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (supervisorAccessError) throw supervisorAccessError;
+      const canManageAllOrders = isAdmin || supervisorAccess?.can_manage_all_orders === true;
+
       let query = supabase
         .from("page_orders")
         .select("*")
-        .eq("project_id", project.id)
         .order("created_at", { ascending: false });
 
-      // Project-wide orders are visible only with explicit order-management permission.
-      // Regular delegates remain restricted to their own orders.
-      const canViewAllOrders = isAdmin || permissions?.can_user_orders === true;
-      if (!canViewAllOrders) {
-        query = query.eq("user_id", user.id);
+      if (!canManageAllOrders) {
+        query = query.eq("project_id", project.id).eq("user_id", user.id);
       }
 
       const { data: ordersData, error: ordersError } = await query;
