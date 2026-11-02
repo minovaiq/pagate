@@ -1,0 +1,39 @@
+/* Pagate mobile-first light identity. Scoped so other project types stay unchanged. */
+.pagate-light { background:#f3f7fd !important; color:#172b4d !important; }
+.pagate-light header { background:#fff !important; border-color:#e0e9f5 !important; box-shadow:0 2px 12px #1d4ed80a; }
+.pagate-light > div > div:last-child { background:transparent !important; border:0 !important; padding:0 !important; }
+.pagate-light .bg-slate-950, .pagate-light .bg-slate-950\/95, .pagate-light .bg-\[\#020617\] { background-color:#fff !important; }
+.pagate-light .bg-slate-900, .pagate-light .bg-slate-900\/70 { background-color:#f2f6fd !important; }
+.pagate-light .bg-slate-800 { background-color:#e7eef9 !important; }
+.pagate-light .border-slate-800, .pagate-light .border-slate-700 { border-color:#dce6f3 !important; }
+.pagate-light .text-white, .pagate-light .text-slate-200, .pagate-light .text-slate-300 { color:#193454 !important; }
+.pagate-light .text-slate-400, .pagate-light .text-slate-500 { color:#657c99 !important; }
+.pagate-light .text-cyan-300, .pagate-light .text-blue-300 { color:#2563eb !important; }
+.pagate-light .text-emerald-400, .pagate-light .text-green-400 { color:#0b9661 !important; }
+.pagate-light .text-red-400 { color:#d94858 !important; }
+.pagate-light .text-violet-400 { color:#7c3aed !important; }
+.pagate-light input, .pagate-light select, .pagate-light textarea { color:#183452 !important; background:#f7faff !important; border-color:#d7e3f3 !important; }
+.pagate-light input::placeholder { color:#8da0b8; }
+.pagate-light button.bg-blue-600, .pagate-light button.bg-emerald-600, .pagate-light button.bg-amber-600 { background:#2563eb !important; color:#fff !important; }
+.pagate-light button.bg-red-600, .pagate-light button.bg-rose-700 { color:#fff !important; }
+.pagate-light .pagate-bottom-nav { background:#fff !important; border-color:#dce6f3 !important; box-shadow:0 -5px 20px #244a7c12; }
+.pagate-light .pagate-bottom-nav button.bg-blue-600 { color:#fff !important; }
+.pagate-light .pagate-bottom-nav button:not(.bg-blue-600) { color:#627b99 !important; }
+.pagate-light .pagate-bottom-nav button { border-radius:12px; padding-top:7px; padding-bottom:7px; }
+.pagate-light article { box-shadow:0 3px 15px #1e40af0a; }
+.pagate-light article .bg-slate-900\/70 { background:#f5f8fd !important; }
+.pagate-light article .bg-emerald-500\/15 { background:#e8f8f0 !important; }
+.pagate-light article .bg-rose-500\/15 { background:#fff0f1 !important; }
+.pagate-light article .bg-blue-500\/15 { background:#e9f2ff !important; }
+.pagate-light article .bg-amber-500\/15 { background:#fff6e5 !important; }
+.pagate-light article .text-emerald-400 { color:#078e5a !important; }
+.pagate-light .pagate-home-stats > div { border-radius:14px; padding:12px; }
+.pagate-light .pagate-home-stats h2 { font-size:16px; }
+@media (max-width:639px) {
+ .pagate-light .wallet-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+ .pagate-light .wallet-summary > :nth-child(5) { grid-column:1/-1; grid-row:1; background:#e9f1ff !important; border-color:#c8dbff !important; }
+ .pagate-light .wallet-summary > :nth-child(5) h2 { font-size:20px; color:#1d4ed8 !important; }
+ .pagate-light article { padding:10px; }
+ .pagate-light article .grid { gap:6px; }
+ .pagate-light .pagate-bottom-nav button { font-size:10px; }
+}
