@@ -287,7 +287,8 @@ function urlBase64ToUint8Array(base64String) {
     );
   }, [orders, searchPhone, statusFilter, delegateFilter]);
 
-  const myDeliveredOrders = useMemo(() => orders.filter(o => o.status === "delivered" && linkedDelegate && (String(o.delegate_id) === String(linkedDelegate.id) || (!o.delegate_id && o.user_id === linkedDelegate.linked_user_id))), [orders, linkedDelegate]);
+  const myPersonalOrders = useMemo(() => orders.filter(o => linkedDelegate && (String(o.delegate_id) === String(linkedDelegate.id) || (!o.delegate_id && o.user_id === linkedDelegate.linked_user_id))), [orders, linkedDelegate]);
+  const myDeliveredOrders = useMemo(() => myPersonalOrders.filter(o => o.status === "delivered"), [myPersonalOrders]);
   const supervisorProfit = supervisorCommissions.reduce((sum, row) => sum + Number(row.amount || 0), 0);
   const personalOrderProfit = myDeliveredOrders.reduce((sum, row) => sum + Number(row.profit_amount || 0), 0);
 
@@ -345,89 +346,40 @@ function urlBase64ToUint8Array(base64String) {
 
   return (
     <div className="space-y-2" dir="rtl">
-      <div className="bg-slate-950 border border-slate-800 rounded-lg p-1 overflow-x-auto">
-        <div className="flex gap-1 min-w-max">
-          <TabButton label="الرئيسية" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} color="bg-blue-600" />
-          <TabButton label="طلباتي" active={activeTab === "orders"} onClick={() => setActiveTab("orders")} color="bg-green-600" />
-          <TabButton label="أرباحي" active={activeTab === "profits"} onClick={() => setActiveTab("profits")} color="bg-emerald-600" />
-          <TabButton label="محفظتي" active={activeTab === "wallet"} onClick={() => setActiveTab("wallet")} color="bg-cyan-600" />
-
-          {canAdd && (
-            <TabButton label="الإدخال" active={activeTab === "add"} onClick={() => setActiveTab("add")} color="bg-purple-600" />
-          )}
-
-          {isAdmin && (
-            <TabButton label="إعدادات الأرباح" active={activeTab === "profit-rules"} onClick={() => setActiveTab("profit-rules")} color="bg-orange-600" />
-          )}
-
-          <select value={delegateFilter} onChange={e => setDelegateFilter(e.target.value)} className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-8 text-[10px] max-w-[160px]">
-            <option value="all">كل المندوبين</option>
-            {[...new Map(orders.filter(o => o.delegate_id).map(o => [String(o.delegate_id), o.delegate_display_name])).entries()].map(([id,name]) => <option key={id} value={id}>{name}</option>)}
-          </select>
-          <input
-            type="text"
-            placeholder="بحث برقم الهاتف..."
-            value={searchPhone}
-            onChange={(e) => setSearchPhone(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-md px-3 h-8 text-[10px] text-white outline-none min-w-[180px]"
-          />
-
-          {(searchPhone || statusFilter !== "all" || delegateFilter !== "all") && (
-            <button onClick={() => { setSearchPhone(""); setStatusFilter("all"); setDelegateFilter("all"); }} className="bg-red-600 px-3 h-8 rounded-md text-[10px] font-black text-white">
-              مسح
-            </button>
-          )}
-
-          <button onClick={loadAll} className="bg-slate-800 px-3 h-8 rounded-md text-[10px] font-black">
-            تحديث
-          </button>
-<button
-  onClick={enablePushNotifications}
-  className="bg-teal-600 hover:bg-teal-700 px-3 h-8 rounded-md text-[10px] font-black text-white whitespace-nowrap"
->
-  تفعيل الإشعارات
-</button>
-        </div>
+      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+        <TabButton label="طلبات المندوبين" active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")} color="bg-blue-600" />
+        <TabButton label="محفظتي" active={activeTab === "wallet"} onClick={() => setActiveTab("wallet")} color="bg-cyan-600" />
+        {canAdd && <TabButton label="إضافة طلب" active={activeTab === "add"} onClick={() => setActiveTab("add")} color="bg-purple-600" />}
+        {isAdmin && <TabButton label="إعدادات الأرباح" active={activeTab === "profit-rules"} onClick={() => setActiveTab("profit-rules")} color="bg-orange-600" />}
+        <button onClick={loadAll} className="mr-auto bg-slate-800 text-white px-3 h-8 rounded-md text-[10px] font-bold">تحديث</button>
       </div>
 
-      {(activeTab === "dashboard" || activeTab === "orders") && <div className="flex flex-wrap gap-1 items-center"><button onClick={() => setStatusFilter("all")} className={`rounded-md px-2 h-7 text-[10px] font-bold ${statusFilter === "all" ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>الكل ({orders.length})</button>{Object.entries(STATUS_LABELS).map(([key,label]) => <button key={key} onClick={() => setStatusFilter(key)} className={`rounded-md px-2 h-7 text-[10px] font-bold ${statusFilter === key ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>{label} ({statusCounts[key] || 0})</button>)}<span className="text-[10px] text-slate-400 mr-auto">المعروض: {searchedOrders.length}</span></div>}
+      {activeTab === "dashboard" && <>
+        <div className="flex flex-wrap items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 p-1">
+          {([["all","الكل"],...Object.entries(STATUS_LABELS).map(([k,v])=>[k,v])]).map(([key,label]) =>
+            <button key={key} onClick={() => setStatusFilter(key)}
+              className={`h-8 rounded-md px-2 text-[10px] font-bold ${statusFilter === key ? "bg-blue-600 text-white" : "bg-slate-900 text-slate-300"}`}>
+              {label} ({key === "all" ? orders.length : statusCounts[key] || 0})
+            </button>
+          )}
+          <select aria-label="فلتر المندوبة" value={delegateFilter} onChange={e => setDelegateFilter(e.target.value)}
+            className="h-8 max-w-[170px] rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white">
+            <option value="all">كل المندوبات</option>
+            {[...new Map(orders.filter(o => o.delegate_id).map(o => [String(o.delegate_id),o.delegate_display_name])).entries()].map(([id,name]) =>
+              <option key={id} value={id}>{name || "مندوبة"}</option>)}
+          </select>
+          <input type="search" placeholder="بحث برقم الهاتف..." value={searchPhone} onChange={e => setSearchPhone(e.target.value)}
+            className="h-8 min-w-[145px] flex-1 rounded-md border border-slate-700 bg-slate-900 px-2 text-[10px] text-white outline-none"/>
+          {(searchPhone || statusFilter !== "all" || delegateFilter !== "all") &&
+            <button onClick={() => {setSearchPhone("");setStatusFilter("all");setDelegateFilter("all");}}
+              className="h-8 rounded-md bg-slate-800 px-2 text-[10px] text-white">مسح الفلاتر</button>}
+          <span className="text-[10px] text-slate-400">المعروض: {searchedOrders.length}</span>
+        </div>
+      </>}
 
       {activeTab === "dashboard" && (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-            <StatCard title="كل الطلبات" value={stats.totalOrders} color="text-blue-400" />
-            <StatCard title="واصل" value={stats.delivered} color="text-green-400" />
-            <StatCard title="راجع" value={stats.returned} color="text-red-400" />
-            <StatCard title="أرباح طلباتي" value={personalOrderProfit} color="text-emerald-400" suffix=" د.ع" />
-          </div>
-
-          {supervisorAccessEnabled && <div className="grid grid-cols-2 md:grid-cols-3 gap-1"><StatCard title="عمولة الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع" /><StatCard title="مجموع أرباحي" value={personalOrderProfit + supervisorProfit} color="text-emerald-400" suffix=" د.ع" /><StatCard title="الطلبات المعروضة" value={searchedOrders.length} color="text-blue-400" /></div>}
-          <OrdersTable
-            orders={searchedOrders.slice(0, 8)}
-            loading={loading}
-            canEdit={canEdit}
-            onStatusChange={updateStatus}
-            isAdmin={isAdmin}
-            onDelete={deleteOrder}
-            onEdit={setEditingOrder}
-          />
-        </>
-      )}
-
-      {activeTab === "orders" && (
-        <OrdersTable
-          orders={searchedOrders}
-          loading={loading}
-          canEdit={canEdit}
-          onStatusChange={updateStatus}
-          isAdmin={isAdmin}
-          onDelete={deleteOrder}
-          onEdit={setEditingOrder}
-        />
-      )}
-
-      {activeTab === "profits" && (
-        <ProfitsSection orders={myDeliveredOrders} supervisorProfit={supervisorProfit} supervisorAccessEnabled={supervisorAccessEnabled} />
+        <OrdersTable orders={searchedOrders} loading={loading} canEdit={canEdit}
+          onStatusChange={updateStatus} isAdmin={isAdmin} onDelete={deleteOrder} onEdit={setEditingOrder}/>
       )}
 
       {activeTab === "wallet" && (
@@ -437,7 +389,9 @@ function urlBase64ToUint8Array(base64String) {
           campaigns={delegateCampaigns}
           profits={delegateProfits}
           settlements={delegateSettlements}
-          orders={myDeliveredOrders}
+          orders={myPersonalOrders}
+          supervisorProfit={supervisorProfit}
+          supervisorCommissions={supervisorCommissions}
         />
       )}
 
@@ -454,74 +408,41 @@ function urlBase64ToUint8Array(base64String) {
   );
 }
 
-function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settlements, orders }) {
-  const deliveredOrders = orders.filter((o) => o.status === "delivered");
-
-  return (
-    <div className="space-y-2">
-      <div className="bg-slate-950 border border-slate-800 rounded-lg p-2">
-        <h2 className="text-[13px] font-black text-white">
-          محفظتي
-        </h2>
-
-        <p className="text-[10px] text-slate-500 mt-1">
-          {linkedDelegate
-            ? `مندوب بيجاتي: ${linkedDelegate.full_name || linkedDelegate.name}`
-            : "لا يوجد مندوب بيجاتي مربوط بهذا الحساب"}
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-        <StatCard title="أرباح الطلبات" value={walletStats.orderProfit} color="text-blue-400" suffix=" د.ع" />
-        <StatCard title="أرباح بيجاتي" value={walletStats.delegateCampaignProfit + walletStats.manualDelegateProfit} color="text-emerald-400" suffix=" د.ع" />
-        <StatCard title="المسدد" value={walletStats.paid} color="text-red-400" suffix=" د.ع" />
-        <StatCard title="المتبقي" value={walletStats.remaining} color="text-cyan-400" suffix=" د.ع" />
-      </div>
-
-      <SimpleTable
-        title="أرباح الطلبات"
-        rows={deliveredOrders.map((o) => ({
-          id: o.id,
-          title: o.customer_name || o.product_name || "طلب",
-          amount: o.profit_amount,
-          date: o.created_at,
-          badge: "طلب",
-        }))}
-      />
-
-      <SimpleTable
-        title="أرباح بيجاتي"
-        rows={[
-          ...campaigns.map((c) => ({
-            id: `c-${c.id}`,
-            title: c.page_name || "حملة",
-            amount: c.delegate_profit,
-            date: c.created_at,
-            badge: "حملة",
-          })),
-          ...profits.map((p) => ({
-            id: `p-${p.id}`,
-            title: p.notes || "ربح يدوي",
-            amount: p.amount,
-            date: p.created_at,
-            badge: "ربح",
-          })),
-        ]}
-      />
-
-      <SimpleTable
-        title="التسديدات"
-        rows={settlements.map((s) => ({
-          id: s.id,
-          title: s.notes || "تسديد أرباح",
-          amount: s.amount,
-          date: s.created_at,
-          badge: "تسديد",
-        }))}
-        negative
-      />
+function WalletSection({ linkedDelegate, walletStats, campaigns, profits, settlements, orders, supervisorProfit = 0, supervisorCommissions = [] }) {
+  const delivered = orders.filter(o => o.status === "delivered");
+  const personalProfit = delivered.reduce((s,o) => s + Number(o.profit_amount || 0),0);
+  const campaignProfit = campaigns.reduce((s,c) => s + Number(c.delegate_profit || 0),0);
+  // Order-linked profit payments are already included in personalProfit.
+  const manualProfit = profits.filter(p => !p.source_order_id).reduce((s,p) => s + Number(p.amount || 0),0);
+  const total = personalProfit + supervisorProfit + campaignProfit + manualProfit;
+  const paid = settlements.reduce((s,p) => s + Number(p.amount || 0),0);
+  return <div className="space-y-2">
+    <div className="rounded-lg border border-slate-800 bg-slate-950 p-2 text-xs font-bold text-white">
+      محفظتي — {linkedDelegate?.full_name || linkedDelegate?.name || "حسابي"}
     </div>
-  );
+    <div className="grid grid-cols-2 gap-1 md:grid-cols-4">
+      <StatCard title="أرباح طلباتي" value={personalProfit} color="text-emerald-400" suffix=" د.ع"/>
+      <StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع"/>
+      <StatCard title="إجمالي أرباحي" value={total} color="text-green-400" suffix=" د.ع"/>
+      <StatCard title="المتبقي بعد التسديد" value={total-paid} color="text-blue-400" suffix=" د.ع"/>
+    </div>
+    <div className="grid grid-cols-2 gap-1 md:grid-cols-3">
+      <StatCard title="طلباتي" value={orders.length} color="text-white"/>
+      <StatCard title="طلباتي الواصلة" value={delivered.length} color="text-emerald-400"/>
+      <StatCard title="المسدد" value={paid} color="text-slate-300" suffix=" د.ع"/>
+    </div>
+    <OrdersTable orders={orders} loading={false} canEdit={false} isAdmin={false}/>
+    <SimpleTable title="عمولات الإشراف الجديدة" rows={supervisorCommissions.map(c => ({
+      id:c.id,title:"عمولة إشراف على طلب واصل",amount:c.amount,date:c.created_at,badge:"إشراف"
+    }))}/>
+    <SimpleTable title="أرباح الحملات والأرباح اليدوية" rows={[
+      ...campaigns.map(c=>({id:`c-${c.id}`,title:c.page_name || "حملة",amount:c.delegate_profit,date:c.created_at,badge:"حملة"})),
+      ...profits.filter(p=>!p.source_order_id).map(p=>({id:`p-${p.id}`,title:p.notes || "ربح يدوي",amount:p.amount,date:p.created_at,badge:"ربح"}))
+    ]}/>
+    <SimpleTable title="التسديدات" rows={settlements.map(s=>({
+      id:s.id,title:s.notes || "تسديد",amount:s.amount,date:s.created_at,badge:"تسديد"
+    }))} negative/>
+  </div>;
 }
 
 function SimpleTable({ title, rows, negative = false }) {
@@ -877,6 +798,8 @@ function OrdersTable({
               <th className="p-2 text-right">السعر</th>
               <th className="p-2 text-right">الحالة</th>
               <th className="p-2 text-right">الربح</th>
+              <th className="p-2 text-right">التاريخ</th>
+              {canEdit && <th className="p-2 text-right">إجراء</th>}
               {isAdmin && <th className="p-2 text-right">حذف</th>}
             </tr>
           </thead>
