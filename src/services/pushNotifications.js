@@ -1,7 +1,8 @@
 import { supabase } from "./supabase/client";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-const SERVICE_WORKER_PATH = "/push-handler.js";
+// The Vite PWA worker owns scope "/" and imports push-handler.js via Workbox.
+const SERVICE_WORKER_PATH = "/sw.js";
 
 export function isIosDevice() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
@@ -39,12 +40,15 @@ export async function registerPushServiceWorker() {
     throw new Error("المتصفح لا يدعم Service Worker");
   }
 
-  const registration = await navigator.serviceWorker.register(
-    SERVICE_WORKER_PATH,
-    { scope: "/" }
-  );
-
-  return navigator.serviceWorker.ready;
+  // Remove the obsolete push-only worker before registering the unified PWA worker.
+  const existing = await navigator.serviceWorker.getRegistration("/");
+  if (existing?.active?.scriptURL?.endsWith("/push-handler.js")) {
+    await existing.unregister();
+  }
+  await navigator.serviceWorker.register(SERVICE_WORKER_PATH, { scope: "/", updateViaCache: "none" });
+  const registration = await navigator.serviceWorker.ready;
+  await registration.update();
+  return registration;
 }
 
 export async function enablePushNotifications(projectId) {
