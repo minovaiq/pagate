@@ -112,7 +112,9 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!canManageAllOrders) {
+      if (canManageAllOrders) {
+        query = query.in("project_id", [project.id, "5d03e858-8e14-4804-b5f9-e6d9c52b9f88"]);
+      } else {
         query = query.eq("project_id", project.id).eq("user_id", user.id);
       }
 
@@ -899,7 +901,7 @@ function OrdersTable({
                     <select
                       value={order.status}
                       onChange={(e) => onStatusChange(order.id, e.target.value)}
-                      className="bg-slate-900 border border-slate-700 rounded-md px-2 h-7 text-[10px]"
+                      className="bg-slate-900 text-white border border-slate-700 rounded-md px-2 h-7 text-[10px]"
                     >
                       {Object.entries(STATUS_LABELS).map(([key, label]) => (
                         <option key={key} value={key}>{label}</option>
