@@ -56,6 +56,14 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         data: { user },
       } = await supabase.auth.getUser();
 
+      if (!user) {
+        setOrders([]);
+        setLinkedDelegate(null);
+        setSupervisorCommissions([]);
+        setSupervisorAccessEnabled(false);
+        return;
+      }
+
       const { data: access, error: accessError } = await supabase
         .from("project_members")
         .select("can_manage_all_orders")
@@ -81,7 +89,10 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
         .order("created_at", { ascending: false });
 
       if (canViewAll) {
-        query = query.in("project_id", [project.id, "5d03e858-8e14-4804-b5f9-e6d9c52b9f88"]);
+        const projectIds = project.id === "cab64e81-998a-4f79-9e35-05afa9ac9d33"
+          ? [project.id, "5d03e858-8e14-4804-b5f9-e6d9c52b9f88"]
+          : [project.id];
+        query = query.in("project_id", projectIds);
       } else {
         query = query.eq("project_id", project.id).eq("user_id", user.id);
       }
@@ -108,11 +119,13 @@ export default function UserOrdersDashboard({ project, permissions, isAdmin }) {
 
       if (!user) return;
 
-      const { data: delegateData } = await supabase
+      const { data: delegateData, error: delegateError } = await supabase
         .from("delegates")
         .select("*")
         .eq("linked_user_id", user.id)
+        .eq("project_id", project.id)
         .maybeSingle();
+      if (delegateError) throw delegateError;
 
       setLinkedDelegate(delegateData || null);
       if (access?.can_manage_all_orders && delegateData?.id) {
@@ -412,7 +425,7 @@ function urlBase64ToUint8Array(base64String) {
       )}
 
       {activeTab === "profits" && (
-        <ProfitsSection stats={stats} orders={myDeliveredOrders} supervisorProfit={supervisorProfit} />
+        <ProfitsSection orders={myDeliveredOrders} supervisorProfit={supervisorProfit} supervisorAccessEnabled={supervisorAccessEnabled} />
       )}
 
       {activeTab === "wallet" && (
@@ -911,7 +924,7 @@ function OrdersTable({
   );
 }
 
-function ProfitsSection({ stats, orders, supervisorProfit = 0 }) {
+function ProfitsSection({ orders, supervisorProfit = 0, supervisorAccessEnabled = false }) {
   const deliveredOrders = orders.filter((o) => o.status === "delivered");
 
   return (
@@ -922,7 +935,7 @@ function ProfitsSection({ stats, orders, supervisorProfit = 0 }) {
         <StatCard title="أرباح طلباتي" value={orders.reduce((s,o) => s + Number(o.profit_amount || 0), 0)} color="text-emerald-400" suffix=" د.ع" />
       </div>
 
-      {supervisorProfit > 0 && <div className="grid grid-cols-2 gap-1"><StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع" /><StatCard title="مجموع أرباحي" value={supervisorProfit + orders.reduce((s,o) => s + Number(o.profit_amount || 0), 0)} color="text-emerald-400" suffix=" د.ع" /></div>}
+      {supervisorAccessEnabled && <div className="grid grid-cols-2 gap-1"><StatCard title="عمولات الإشراف" value={supervisorProfit} color="text-cyan-400" suffix=" د.ع" /><StatCard title="مجموع أرباحي" value={supervisorProfit + orders.reduce((s,o) => s + Number(o.profit_amount || 0), 0)} color="text-emerald-400" suffix=" د.ع" /></div>}
       <OrdersTable
         orders={deliveredOrders}
         loading={false}
